@@ -19,3 +19,6 @@ dispatcher
 
 # Test folder
 ./src
+
+# Test file
+main.go
