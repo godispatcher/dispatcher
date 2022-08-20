@@ -1,14 +1,14 @@
-package converter
+package handling
 
 import (
+	"dispatcher/constants"
+	"dispatcher/model"
 	"encoding/json"
 	"log"
-	"dispatcher/constants"
-	"dispatcher/document"
 )
 
-func RequestBodyToDocument(body []byte) *document.Document {
-	document := &document.Document{}
+func RequestBodyToDocument(body []byte) *model.Document {
+	document := &model.Document{}
 	err := json.Unmarshal(body, &document)
 
 	if err != nil {

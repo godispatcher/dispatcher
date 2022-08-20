@@ -1,4 +1,4 @@
-package matcher
+package model
 
 type Department struct {
 	Name         string `json:"name"`

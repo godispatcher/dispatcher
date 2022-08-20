@@ -1,4 +1,4 @@
-package document
+package model
 
 import (
 	"dispatcher/utilities"

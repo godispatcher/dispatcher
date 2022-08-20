@@ -1,20 +1,20 @@
-package matcher
+package registrant
 
 import (
+	"dispatcher/constants"
+	"dispatcher/handling"
+	"dispatcher/model"
 	"encoding/json"
 	"errors"
-	"dispatcher/constants"
-	"dispatcher/converter"
-	"dispatcher/document"
 )
 
-var DepartmentRegistering = []Department{}
+var DepartmentRegistering = []model.Department{}
 
-func RegisterDepartment(department Department) {
+func RegisterDepartment(department model.Department) {
 	DepartmentRegistering = append(DepartmentRegistering, department)
 }
 
-func MatchDepartmentAndTransaction(document document.Document) (result *Transaction, err error) {
+func MatchDepartmentAndTransaction(document model.Document) (result *model.Transaction, err error) {
 FirstLoop:
 	for _, department := range DepartmentRegistering {
 		if department.Name == document.Department {
@@ -34,16 +34,16 @@ FirstLoop:
 	return result, err
 }
 
-func formToString(form document.DocumentForm) (string, error) {
+func formToString(form model.DocumentForm) (string, error) {
 	formByte, err := json.Marshal(form)
 
 	return string(formByte), err
 }
 
-func RequestHandler(doc document.Document, transaction *Transaction) error {
+func RequestHandler(doc model.Document, transaction *model.Transaction) error {
 	formString, _ := formToString(doc.Form)
 	(*transaction).SetRequest(formString)
-	documentFormValidater := converter.DocumentFormValidater{Request: formString}
+	documentFormValidater := handling.DocumentFormValidater{Request: formString}
 	reqType := (*transaction).GetRequestType()
 
 	return documentFormValidater.Validate(reqType)

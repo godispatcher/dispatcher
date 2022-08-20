@@ -2,10 +2,8 @@ package registrant
 
 import (
 	"dispatcher/constants"
-	"dispatcher/converter"
-	"dispatcher/document"
 	"dispatcher/handling"
-	"dispatcher/matcher"
+	"dispatcher/model"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,23 +14,22 @@ func NewRegisterDispatch() RegisterDispatcher {
 
 	dispatch.MainFunc = func(rw http.ResponseWriter, req *http.Request) {
 		body := handling.RequestHandle(req)
-		doc := converter.RequestBodyToDocument(body)
-		transaction, err := matcher.MatchDepartmentAndTransaction(*doc)
-		responseDoc := document.Document{Department: doc.Department, Transaction: doc.Transaction, Type: doc.Type}
+		doc := handling.RequestBodyToDocument(body)
+		transaction, err := MatchDepartmentAndTransaction(*doc)
+		responseDoc := model.Document{Department: doc.Department, Transaction: doc.Transaction, Type: doc.Type}
 		responder := newResponder(rw, responseDoc)
 
-		rw.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
 		if err != nil {
 			responder.writeError(err)
 			return
 		}
 		if doc.Type == "procedure" {
-			procedure := document.Procedure{}
+			procedure := model.Procedure{}
 			procedure.FromRequestType((*transaction).GetRequestType())
 			responder.writeProcedure(procedure)
 			return
 		}
-		err = matcher.RequestHandler(*doc, transaction)
+		err = RequestHandler(*doc, transaction)
 		if err != nil {
 			responder.writeError(err)
 			return
@@ -51,18 +48,19 @@ type RegisterDispatcher struct {
 	Port     string
 }
 
-func runningTransaction(transaction *matcher.Transaction) interface{} {
+func runningTransaction(transaction *model.Transaction) interface{} {
 	(*transaction).Transact()
 	return (*transaction).GetResponse()
 }
 
 type Responder struct {
 	rw  http.ResponseWriter
-	doc document.Document
+	doc model.Document
 }
 
-func newResponder(rw http.ResponseWriter, doc document.Document) Responder {
+func newResponder(rw http.ResponseWriter, doc model.Document) Responder {
 	responder := Responder{rw: rw, doc: doc}
+	responder.rw.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
 
 	return responder
 }
