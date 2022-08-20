@@ -1,0 +1,7 @@
+package matcher
+
+type Department struct {
+	Name         string `json:"name"`
+	Slug         string `json:"slug"`
+	Transactions map[string]Transaction
+}
