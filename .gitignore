@@ -16,3 +16,6 @@
 
 # bin files
 dispatcher
+
+# Test folder
+./src
