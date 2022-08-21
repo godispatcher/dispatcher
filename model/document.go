@@ -2,10 +2,20 @@ package model
 
 import (
 	"dispatcher/utilities"
+	"encoding/json"
 	"reflect"
 )
 
 type DocumentForm map[string]interface{}
+
+func (df *DocumentForm) FromInterface(data interface{}) error {
+	byteData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(byteData, &df)
+}
+
 type ChainRequestOption map[string]interface{}
 
 type Document struct {
@@ -16,7 +26,7 @@ type Document struct {
 	Form               DocumentForm       `json:"form,omitempty"`
 	Output             interface{}        `json:"output,omitempty"`
 	Error              interface{}        `json:"error,omitempty"`
-	Dispatchings       []Document         `json:"dispatchings,omitempty"`
+	Dispatchings       []*Document         `json:"dispatchings,omitempty"`
 	ChainRequestOption ChainRequestOption `json:"chain_request_option,omitempty"`
 }
 
