@@ -31,12 +31,27 @@ func NewRegisterDispatch() RegisterDispatcher {
 			return
 		}
 
-		responder.doc.Output = output
-		lastResponse := output
+		var lastResponse interface{} = nil
+
+		if doc.Type == constants.DOC_TYPE_PROCEDURE {
+			responder.doc.Procedure = output
+		} else {
+			responder.doc.Output = output
+			lastResponse = *output
+		}
+
+		if lastResponse != nil && doc.ChainRequestOption != nil {
+			lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
+		}
+
 		if doc.Dispatchings != nil {
 			for _, val := range responder.doc.Dispatchings {
 				val.Form.FromInterface(lastResponse)
-				dispatchTracker(&responder, val)
+				err := dispatchTracker(&responder, val)
+				if err != nil {
+					val.Error = err.Error()
+					val.Type = constants.DOC_TYPE_ERROR
+				}
 			}
 		}
 		responder.writeDocument()
@@ -46,23 +61,39 @@ func NewRegisterDispatch() RegisterDispatcher {
 	return dispatch
 }
 
-func dispatchTracker(responder *Responder, doc *model.Document) {
+func dispatchTracker(responder *Responder, doc *model.Document) (err error) {
 	transaction, err := MatchDepartmentAndTransaction(*doc)
 	if err != nil {
-		responder.writeError(err)
-		return
+		return err
 	}
 	output, err := transactionRunner(transaction, doc)
 	if err != nil {
-		responder.writeError(err)
-		return
+		return err
 	}
-	doc.Output = output
+	var lastResponse interface{} = nil
+	if doc.Type == constants.DOC_TYPE_PROCEDURE {
+		doc.Procedure = output
+	} else {
+		doc.Output = output
+		lastResponse = output
+	}
+
+	if lastResponse != nil && doc.ChainRequestOption != nil {
+		lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
+	}
+	// TODO: lastResponse doc.ChainRequestOption a göre işlemden geçirildikten sonra val.Form.FromInterface fonksiyonuna aktarılacak
+	// Ana blokta da bu işlemin aynı gerekiyor.
 	if doc.Dispatchings != nil {
 		for _, val := range doc.Dispatchings {
-			dispatchTracker(responder, val)
+			val.Form.FromInterface(lastResponse)
+			err = dispatchTracker(responder, val)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return
 }
 
 func transactionRunner(transaction *model.Transaction, doc *model.Document) (output *interface{}, err error) {
@@ -95,6 +126,19 @@ type RegisterDispatcher struct {
 func runningTransaction(transaction *model.Transaction) interface{} {
 	(*transaction).Transact()
 	return (*transaction).GetResponse()
+}
+
+func responseTransformer(response interface{}, chainRequestOption model.ChainRequestOption) interface{} {
+	responseByte, _ := json.Marshal(response)
+	var responseMap map[string]interface{}
+	json.Unmarshal(responseByte, &responseMap)
+	for key, val := range chainRequestOption {
+		if _, ok := responseMap[key]; ok {
+			responseMap[val.(string)] = responseMap[key]
+		}
+	}
+
+	return responseMap
 }
 
 type Responder struct {
@@ -130,7 +174,9 @@ func (r *Responder) writeProcedure(procedure interface{}) {
 }
 
 func (r *Responder) writeDocument() {
-	r.doc.Type = constants.DOC_TYPE_RESULT
+	if &r.doc.Type == nil || r.doc.Type == "" {
+		r.doc.Type = constants.DOC_TYPE_RESULT
+	}
 	response, _ := json.Marshal(r.doc)
 	fmt.Fprint(r.rw, string(response))
 }
