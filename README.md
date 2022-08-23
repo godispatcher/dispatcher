@@ -7,6 +7,12 @@
 
 ```go
 
+import (
+	"github.com/denizakturk/dispatcher/handling"
+	"github.com/denizakturk/dispatcher/model"
+	"github.com/denizakturk/dispatcher/registrant"
+)
+
 type Department struct {
 	Name         string `json:"name"`
 	Slug         string `json:"slug"`
@@ -23,6 +29,8 @@ type Transaction interface {
 ## Example department and transaction infrastruct
 
 ```go
+
+import
 
 // Request - Response structs
 type ProductCreateRequest struct {
@@ -69,6 +77,8 @@ productDepartment := model.Department{Name:"Product", Slug:"product"}
 
 productDepartment.Transactions["create"] = &ProductCreate{}
 
+registrant.RegisterDepartment(productDepartment)
+
 ```
 
 ### Service Requesting
@@ -101,6 +111,9 @@ type Document struct {
 ## Procedure:
 #### Type=procedure olarak işaretlendiğinde bu alanın içine ilgili tranaction parametreleri gelecektir.
 ---
+## Form
+#### Transaction için ihtiyaç duyulan parametreler form alanında gönderilir.
+---
 ## Output:
 #### Transaction çıktısı buraya basılır.
 ---
@@ -112,3 +125,26 @@ type Document struct {
 ---
 ## ChainRequestOption:
 #### Dispatchings ile birlikte kullanılan bir alandır, Dispatchings için yapılan ek açıklama geçerlidir.
+
+## Example Document
+
+```json
+{
+    "department":"Product",
+    "transaction":"create",
+    "form":{
+		"name":"Mavi ayakkabı", 
+		"slug":"mavi-ayakkabi", 
+		"description":"Mavi "
+	},
+    "chain_request_option":{
+		"id":"product_id"
+	},
+    "dispatchings":[
+		{
+			"department":"Listing", 
+			"transaction":"add-product-to-list"
+		}
+	]
+}
+```
