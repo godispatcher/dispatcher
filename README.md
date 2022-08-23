@@ -98,7 +98,7 @@ type Document struct {
 ## Type:
 #### Servis çağrılarında bu alan boş bırakılabilir, procedure yazıldığında o transaction'ın aldığı parametreler listelenecektir.
 ---
-## Procedıre:
+## Procedure:
 #### Type=procedure olarak işaretlendiğinde bu alanın içine ilgili tranaction parametreleri gelecektir.
 ---
 ## Output:
@@ -111,5 +111,4 @@ type Document struct {
 #### Bu kısımda bir sonraki yapılacak işlem tanımlanır ve ChainRequestOption ile desteklenir ama bu kısım için ayrıntılı bir anlatım gerekmektedir.
 ---
 ## ChainRequestOption:
-
 #### Dispatchings ile birlikte kullanılan bir alandır, Dispatchings için yapılan ek açıklama geçerlidir.
