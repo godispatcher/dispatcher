@@ -17,9 +17,9 @@ func InitServer(register registrant.RegisterDispatcher) {
 }
 
 type TransactionListHelper struct {
-	Name           string      `json:"name"`
-	RequestParams  interface{} `json:"request_params"`
-	ResponseParams interface{} `json:"response_params"`
+	Name      string      `json:"name"`
+	Procudure interface{} `json:"procedure,omitempty"`
+	Output    interface{} `json:"output,omitempty"`
 }
 type DepartmentListHelper struct {
 	Name         string                  `json:"name"`
@@ -38,12 +38,14 @@ func RequestHelper(res http.ResponseWriter, req *http.Request) {
 		for key, v := range val.Transactions {
 			transaction := TransactionListHelper{}
 			transaction.Name = key
-			requestProcedure := model.Procedure{}
-			responseProcedure := model.Procedure{}
-			requestProcedure.FromRequestType(v.GetRequestType())
-			responseProcedure.FromRequestType(v.GetResponse())
-			transaction.RequestParams = requestProcedure
-			transaction.ResponseParams = responseProcedure
+			if !req.URL.Query().Has("short") || req.URL.Query().Get("short") == "0" {
+				requestProcedure := model.Procedure{}
+				responseProcedure := model.Procedure{}
+				requestProcedure.FromRequestType(v.GetRequestType())
+				responseProcedure.FromRequestType(v.GetResponse())
+				transaction.Procudure = requestProcedure
+				transaction.Output = responseProcedure
+			}
 			department.Transactions = append(department.Transactions, transaction)
 		}
 		helperList.Departments = append(helperList.Departments, department)

@@ -47,7 +47,7 @@ func NewRegisterDispatch() RegisterDispatcher {
 		if doc.Dispatchings != nil {
 			for _, val := range responder.doc.Dispatchings {
 				val.Form.FromInterface(lastResponse)
-				err := dispatchTracker(&responder, val)
+				err := dispatchTracker(val)
 				if err != nil {
 					val.Error = err.Error()
 					val.Type = constants.DOC_TYPE_ERROR
@@ -61,7 +61,48 @@ func NewRegisterDispatch() RegisterDispatcher {
 	return dispatch
 }
 
-func dispatchTracker(responder *Responder, doc *model.Document) (err error) {
+func DocumentHandler(doc model.Document) model.Document {
+	transaction, err := MatchDepartmentAndTransaction(doc)
+	resultDocument := doc
+	if err != nil {
+		resultDocument.Error = err.Error()
+		return resultDocument
+	}
+	output, err := transactionRunner(transaction, &resultDocument)
+
+	if err != nil {
+		resultDocument.Error = err.Error()
+		return resultDocument
+	}
+
+	var lastResponse interface{} = nil
+
+	if doc.Type == constants.DOC_TYPE_PROCEDURE {
+		resultDocument.Procedure = output
+	} else {
+		resultDocument.Output = output
+		lastResponse = *output
+	}
+
+	if lastResponse != nil && doc.ChainRequestOption != nil {
+		lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
+	}
+
+	if doc.Dispatchings != nil {
+		for _, val := range resultDocument.Dispatchings {
+			val.Form.FromInterface(lastResponse)
+			err := dispatchTracker(val)
+			if err != nil {
+				val.Error = err.Error()
+				val.Type = constants.DOC_TYPE_ERROR
+			}
+		}
+	}
+
+	return resultDocument
+}
+
+func dispatchTracker(doc *model.Document) (err error) {
 	transaction, err := MatchDepartmentAndTransaction(*doc)
 	if err != nil {
 		return err
@@ -86,7 +127,7 @@ func dispatchTracker(responder *Responder, doc *model.Document) (err error) {
 	if doc.Dispatchings != nil {
 		for _, val := range doc.Dispatchings {
 			val.Form.FromInterface(lastResponse)
-			err = dispatchTracker(responder, val)
+			err = dispatchTracker(val)
 			if err != nil {
 				return err
 			}
