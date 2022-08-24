@@ -26,13 +26,13 @@ type Document struct {
 	Form               DocumentForm       `json:"form,omitempty"`
 	Output             interface{}        `json:"output,omitempty"`
 	Error              interface{}        `json:"error,omitempty"`
-	Dispatchings       []*Document         `json:"dispatchings,omitempty"`
+	Dispatchings       []*Document        `json:"dispatchings,omitempty"`
 	ChainRequestOption ChainRequestOption `json:"chain_request_option,omitempty"`
 }
 
 type ProcedureItem struct {
-	Require bool   `json:"require"`
-	IsEmpty bool   `json:"is_empty"`
+	Require bool   `json:"require,omitempty"`
+	IsEmpty bool   `json:"is_empty,omitempty"`
 	Type    string `json:"type"`
 }
 
@@ -53,6 +53,19 @@ func (p *Procedure) FromRequestType(requestType interface{}) {
 		if tagOption.IsEmpty != nil {
 			procedureItem.IsEmpty = *tagOption.IsEmpty
 		}
+		procedureItem.Type = field.Type.Name()
+		(*p)[tagOption.FieldRawname] = procedureItem
+	}
+}
+
+func (p *Procedure) FromResponseType(responseType interface{}) {
+	typeof := reflect.TypeOf(responseType)
+	valueOf := reflect.ValueOf(responseType)
+
+	for i := 0; i < valueOf.NumField(); i++ {
+		field := typeof.Field(i)
+		tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(field.Tag))
+		procedureItem := ProcedureItem{}
 		procedureItem.Type = field.Type.Name()
 		(*p)[tagOption.FieldRawname] = procedureItem
 	}

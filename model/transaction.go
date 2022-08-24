@@ -1,7 +1,7 @@
 package model
 
 type Transaction interface {
-	Transact()
+	Transact() error
 	SetRequest(req string)
 	GetRequestType() interface{}
 	GetResponse() interface{}

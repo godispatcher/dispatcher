@@ -139,9 +139,12 @@ func dispatchTracker(doc *model.Document) (err error) {
 
 func transactionRunner(transaction *model.Transaction, doc *model.Document) (output *interface{}, err error) {
 	if doc.Type == constants.DOC_TYPE_PROCEDURE {
-		procedure := &model.Procedure{}
-		procedure.FromRequestType((*transaction).GetRequestType())
-		output := interface{}(procedure)
+		inputProcedure := &model.Procedure{}
+		outputProcedure := &model.Procedure{}
+		inputProcedure.FromRequestType((*transaction).GetRequestType())
+		outputProcedure.FromResponseType((*transaction).GetResponse())
+		output := interface{}(inputProcedure)
+		doc.Output = outputProcedure
 		doc.Type = constants.DOC_TYPE_PROCEDURE
 		return &output, nil
 	}
@@ -151,9 +154,10 @@ func transactionRunner(transaction *model.Transaction, doc *model.Document) (out
 	}
 
 	if transaction != nil {
-		output := runningTransaction(transaction)
+		err := (*transaction).Transact()
+		output := (*transaction).GetResponse()
 		doc.Type = constants.DOC_TYPE_RESULT
-		return &output, nil
+		return &output, err
 	}
 
 	return nil, errors.New("An unidentified error has occurred")
@@ -162,11 +166,6 @@ func transactionRunner(transaction *model.Transaction, doc *model.Document) (out
 type RegisterDispatcher struct {
 	MainFunc func(http.ResponseWriter, *http.Request)
 	Port     string
-}
-
-func runningTransaction(transaction *model.Transaction) interface{} {
-	(*transaction).Transact()
-	return (*transaction).GetResponse()
 }
 
 func responseTransformer(response interface{}, chainRequestOption model.ChainRequestOption) interface{} {
