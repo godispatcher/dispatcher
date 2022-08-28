@@ -20,13 +20,15 @@ type Department struct {
 }
 
 type Transaction interface {
-	Transact()
+	Transact() error
 	SetRequest(req string)
 	GetRequestType() interface{}
 	GetResponse() interface{}
+	GetOptions() TransactionOptions
+	LicenceChecker(licence string) bool
 }
 ```
-## Example department and transaction infrastruct
+## **Example department and transaction infrastruct**
 
 ```go
 
@@ -50,6 +52,7 @@ type ProductCreate struct {
     Request ProductCreateRequest
     Response ProductCreateResponse
     handling.TransactionExchangeConverter // Helper struct
+	model.TransactionOptions // Options
 }
 
 
@@ -74,8 +77,9 @@ func (t *ProductCreate) Transact() {
 }
 
 productDepartment := model.Department{Name:"Product", Slug:"product"}
-
-productDepartment.Transactions["create"] = &ProductCreate{}
+productCreate := &ProductCreate{}
+productCreate.Security.LicenceChecker = true
+productDepartment.Transactions["create"] = productCreate
 
 registrant.RegisterDepartment(productDepartment)
 
@@ -87,45 +91,50 @@ registrant.RegisterDepartment(productDepartment)
 
 ```go
 type Document struct {
-	Department         string             `json:"department,omitempty"`
-	Transaction        string             `json:"transaction,omitempty"`
-	Type               string             `json:"type,omitempty"`
-	Procedure          interface{}        `json:"procedure,omitempty"`
-	Form               DocumentForm       `json:"form,omitempty"`
-	Output             interface{}        `json:"output,omitempty"`
-	Error              interface{}        `json:"error,omitempty"`
+	Department         string              `json:"department,omitempty"`
+	Transaction        string              `json:"transaction,omitempty"`
+	Type               string              `json:"type,omitempty"`
+	Procedure          interface{}         `json:"procedure,omitempty"`
+	Form               DocumentForm        `json:"form,omitempty"`
+	Output             interface{}         `json:"output,omitempty"`
+	Error              interface{}         `json:"error,omitempty"`
 	Dispatchings       []*Document         `json:"dispatchings,omitempty"`
-	ChainRequestOption ChainRequestOption `json:"chain_request_option,omitempty"`
+	ChainRequestOption ChainRequestOption  `json:"chain_request_option,omitempty"`
+	Security           *Security           `json:"security,omitempty"`
+	Options            *TransactionOptions `json:"options,omitempty"`
 }
 ```
 
-## Department:
+## **Department**:
 #### İlgili transaction'ın barındığı departman ismi, bunu oluştururken veriyorsunuz.
 ---
-## Transaction:
+## **Transaction**:
 #### İlgili işlemin ismi, aynı işlem isimlerini farklı department'lar altında tanımlayabilirsiniz.
 ---
-## Type:
+## **Type**:
 #### Servis çağrılarında bu alan boş bırakılabilir, procedure yazıldığında o transaction'ın aldığı parametreler listelenecektir.
 ---
-## Procedure:
+## **Procedure**:
 #### Type=procedure olarak işaretlendiğinde bu alanın içine ilgili tranaction parametreleri gelecektir.
 ---
-## Form
+## **Form**:
 #### Transaction için ihtiyaç duyulan parametreler form alanında gönderilir.
 ---
-## Output:
+## **Output**:
 #### Transaction çıktısı buraya basılır.
 ---
-## Error:
+## **Error**:
 #### Herhangi bir hata durumunda buraya hata mesajı basılır.
 ---
-## Dispatchings:
+## **Dispatchings**:
 #### Bu kısımda bir sonraki yapılacak işlem tanımlanır ve ChainRequestOption ile desteklenir ama bu kısım için ayrıntılı bir anlatım gerekmektedir.
 ---
-## ChainRequestOption:
+## **ChainRequestOption**:
 #### Dispatchings ile birlikte kullanılan bir alandır, Dispatchings için yapılan ek açıklama geçerlidir.
-
+## **Security**:
+#### Security altında bulunan licence değerine sisteminizde kullanılan token'ı vererek transaction'ın gerektirdiği verification admını sağlayabilirsiniz.
+## **Options**:
+#### Transaction'ın gerekitiği ayarları buradan kontrol edebilirsiniz, transaction'ınızı oluştururken Options->Security->LicenceChecker parametresine true vererek güvenlik adımı ekleyebilirsiniz.
 ## Example Document
 
 ```json
@@ -145,6 +154,9 @@ type Document struct {
 			"department":"Listing", 
 			"transaction":"add-product-to-list"
 		}
-	]
+	],
+	"security":{
+		"licence":"LICENCE_STRING"
+	}
 }
 ```
