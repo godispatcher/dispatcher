@@ -6,9 +6,9 @@ import (
 )
 
 func ExecuteTransaction(department string, transaction string, form map[string]interface{}) *model.Document {
-	document := &model.Document{Department: department, Transaction: transaction, Form: model.DocumentForm(form)}
-	outputDoc := &model.Document{}
-	registrant.DocumentHandler(document, outputDoc)
-
-	return outputDoc
+	inputDoc := &model.Document{Department: department, Transaction: transaction, Form: model.DocumentForm(form)}
+	documentarist := model.NewDocumentarist(nil, inputDoc)
+	documentation := registrant.NewDocumentation(&documentarist)
+	documentation.DocumentEnforcer()
+	return documentation.Documentarist.Output
 }

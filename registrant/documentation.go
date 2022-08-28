@@ -62,7 +62,7 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 		}
 
 		if lastResponse != nil && inputDoc.ChainRequestOption != nil {
-			lastResponse = responseTransformer(lastResponse, inputDoc.ChainRequestOption)
+			lastResponse = r.ResponseTransformer(lastResponse, inputDoc.ChainRequestOption)
 		}
 	}
 
