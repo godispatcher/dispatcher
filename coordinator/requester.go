@@ -5,9 +5,10 @@ import (
 	"dispatcher/registrant"
 )
 
-func ExecuteTransaction(department string, transaction string, form map[string]interface{}) model.Document {
-	document := model.Document{Department: department, Transaction: transaction, Form: model.DocumentForm(form)}
-	result := registrant.DocumentHandler(document)
+func ExecuteTransaction(department string, transaction string, form map[string]interface{}) *model.Document {
+	document := &model.Document{Department: department, Transaction: transaction, Form: model.DocumentForm(form)}
+	outputDoc := &model.Document{}
+	registrant.DocumentHandler(document, outputDoc)
 
-	return result
+	return outputDoc
 }

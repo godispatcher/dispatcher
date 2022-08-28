@@ -14,24 +14,24 @@ func RegisterDepartment(department model.Department) {
 	DepartmentRegistering = append(DepartmentRegistering, department)
 }
 
-func MatchDepartmentAndTransaction(document model.Document) (result *model.Transaction, err error) {
+func MatchDepartmentAndTransaction(inputDoc *model.Document) (transaction *model.Transaction, err error) {
 FirstLoop:
 	for _, department := range DepartmentRegistering {
-		if department.Name == document.Department {
-			for name, transaction := range department.Transactions {
-				if name == document.Transaction {
-					result = &transaction
+		if department.Name == inputDoc.Department {
+			for name, findedTransaction := range department.Transactions {
+				if name == inputDoc.Transaction {
+					transaction = &findedTransaction
 					break FirstLoop
 				}
 			}
 		}
 	}
 
-	if result == nil {
+	if transaction == nil {
 		err = errors.New(constants.TRANSACTION_NOT_FOUND)
 	}
 
-	return result, err
+	return transaction, err
 }
 
 func formToString(form model.DocumentForm) (string, error) {
@@ -40,8 +40,8 @@ func formToString(form model.DocumentForm) (string, error) {
 	return string(formByte), err
 }
 
-func RequestHandler(doc model.Document, transaction *model.Transaction) error {
-	formString, _ := formToString(doc.Form)
+func RequestHandler(inputDoc *model.Document, transaction *model.Transaction) error {
+	formString, _ := formToString(inputDoc.Form)
 	(*transaction).SetRequest(formString)
 	documentFormValidater := handling.DocumentFormValidater{Request: formString}
 	reqType := (*transaction).GetRequestType()

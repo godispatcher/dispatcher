@@ -5,4 +5,18 @@ type Transaction interface {
 	SetRequest(req string)
 	GetRequestType() interface{}
 	GetResponse() interface{}
+	GetOptions() TransactionOptions
+	LicenceChecker(licence string) bool
+}
+
+type TransactionOptions struct {
+	Security SecurityOptions `json:"security,omitempty"`
+}
+
+func (m *TransactionOptions) GetOptions() TransactionOptions {
+	return *m
+}
+
+type SecurityOptions struct {
+	LicenceChecker bool `json:"licence_checker,omitempty"`
 }

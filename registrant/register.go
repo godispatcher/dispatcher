@@ -6,7 +6,6 @@ import (
 	"dispatcher/model"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -14,120 +13,133 @@ func NewRegisterDispatch() RegisterDispatcher {
 	dispatch := RegisterDispatcher{}
 
 	dispatch.MainFunc = func(rw http.ResponseWriter, req *http.Request) {
-		body := handling.RequestHandle(req)
-		doc := handling.RequestBodyToDocument(body)
-		transaction, err := MatchDepartmentAndTransaction(*doc)
-		//responseDoc := model.Document{Department: doc.Department, Transaction: doc.Transaction, Type: doc.Type, Dispatchings: doc.Dispatchings}
-		responder := newResponder(rw, *doc)
-
+		body, err := handling.RequestHandle(req)
 		if err != nil {
-			responder.writeError(err)
-			return
+			errDoc := model.Document{}
+			errResponder := model.New(rw, errDoc)
+			errResponder.WriteError(err)
 		}
-		output, err := transactionRunner(transaction, &responder.doc)
+		inputDoc := handling.RequestBodyToDocument(body)
+		documentarist := model.NewDocumentarist(rw, inputDoc)
+		documentation := NewDocumentation(&documentarist)
 
-		if err != nil {
-			responder.writeError(err)
-			return
-		}
+		documentation.DocumentEnforcer()
+		documentarist.Write()
 
-		var lastResponse interface{} = nil
+		/*
+			transaction, err := MatchDepartmentAndTransaction(inputDoc)
+			documentarist := model.NewDocumentarist(rw, inputDoc)
 
-		if doc.Type == constants.DOC_TYPE_PROCEDURE {
-			responder.doc.Procedure = output
-		} else {
-			responder.doc.Output = output
-			lastResponse = *output
-		}
+			if err != nil {
+				documentarist.WriteError(err)
+				return
+			}
+			err = transactionRunner(transaction, documentarist.Input, documentarist.Output)
 
-		if lastResponse != nil && doc.ChainRequestOption != nil {
-			lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
-		}
+			if err != nil {
+				documentarist.WriteError(err)
+				return
+			}
 
-		if doc.Dispatchings != nil {
-			for _, val := range responder.doc.Dispatchings {
-				val.Form.FromInterface(lastResponse)
-				err := dispatchTracker(val)
-				if err != nil {
-					val.Error = err.Error()
-					val.Type = constants.DOC_TYPE_ERROR
+			var lastResponse interface{} = nil
+
+			if documentarist.Output.Type == constants.DOC_TYPE_RESULT {
+				lastResponse = documentarist.Output.Output
+			}
+
+			if lastResponse != nil && documentarist.Input.ChainRequestOption != nil {
+				lastResponse = responseTransformer(lastResponse, documentarist.Input.ChainRequestOption)
+			}
+
+			if documentarist.Input.Dispatchings != nil {
+				for _, val := range documentarist.Input.Dispatchings {
+					val.Form.FromInterface(lastResponse)
+					outputDocNew := &model.Document{}
+					if &val.Security.Licence == nil || val.Security.Licence == "" {
+						val.Security.Licence = documentarist.Input.Security.Licence
+					}
+					err := dispatchTracker(val, outputDocNew)
+					if err != nil {
+						outputDocNew.Error = err.Error()
+						outputDocNew.Type = constants.DOC_TYPE_ERROR
+					}
+					documentarist.Output.Dispatchings = append(documentarist.Output.Dispatchings, outputDocNew)
 				}
 			}
-		}
-		responder.writeDocument()
+			documentarist.WriteDocument()
+		*/
 	}
 
 	dispatch.Port = "9000"
 	return dispatch
 }
 
-func DocumentHandler(doc model.Document) model.Document {
-	transaction, err := MatchDepartmentAndTransaction(doc)
-	resultDocument := doc
+func DocumentHandler(inputDoc *model.Document, outputDoc *model.Document) {
+	transaction, err := MatchDepartmentAndTransaction(inputDoc)
 	if err != nil {
-		resultDocument.Error = err.Error()
-		return resultDocument
+		outputDoc.Error = err.Error()
+		return
 	}
-	output, err := transactionRunner(transaction, &resultDocument)
+	err = transactionRunner(transaction, inputDoc, outputDoc)
 
 	if err != nil {
-		resultDocument.Error = err.Error()
-		return resultDocument
+		outputDoc.Error = err.Error()
+		return
 	}
 
 	var lastResponse interface{} = nil
 
-	if doc.Type == constants.DOC_TYPE_PROCEDURE {
-		resultDocument.Procedure = output
-	} else {
-		resultDocument.Output = output
-		lastResponse = *output
+	if outputDoc.Type == constants.DOC_TYPE_RESULT {
+		lastResponse = outputDoc.Output
 	}
 
-	if lastResponse != nil && doc.ChainRequestOption != nil {
-		lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
+	if lastResponse != nil && inputDoc.ChainRequestOption != nil {
+		lastResponse = responseTransformer(lastResponse, inputDoc.ChainRequestOption)
 	}
 
-	if doc.Dispatchings != nil {
-		for _, val := range resultDocument.Dispatchings {
+	if inputDoc.Dispatchings != nil {
+		for _, val := range inputDoc.Dispatchings {
 			val.Form.FromInterface(lastResponse)
-			err := dispatchTracker(val)
+			outputDocNew := &model.Document{}
+			err := dispatchTracker(val, outputDocNew)
 			if err != nil {
-				val.Error = err.Error()
-				val.Type = constants.DOC_TYPE_ERROR
+				outputDocNew.Error = err.Error()
+				outputDocNew.Type = constants.DOC_TYPE_ERROR
 			}
+			outputDoc.Dispatchings = append(outputDoc.Dispatchings, outputDocNew)
 		}
 	}
 
-	return resultDocument
+	return
 }
 
-func dispatchTracker(doc *model.Document) (err error) {
-	transaction, err := MatchDepartmentAndTransaction(*doc)
+func dispatchTracker(inputDoc *model.Document, outputDoc *model.Document) (err error) {
+	transaction, err := MatchDepartmentAndTransaction(inputDoc)
 	if err != nil {
 		return err
 	}
-	output, err := transactionRunner(transaction, doc)
+	err = transactionRunner(transaction, inputDoc, outputDoc)
 	if err != nil {
 		return err
 	}
 	var lastResponse interface{} = nil
-	if doc.Type == constants.DOC_TYPE_PROCEDURE {
-		doc.Procedure = output
-	} else {
-		doc.Output = output
-		lastResponse = output
+	if outputDoc.Type == constants.DOC_TYPE_RESULT {
+		lastResponse = outputDoc.Output
 	}
 
-	if lastResponse != nil && doc.ChainRequestOption != nil {
-		lastResponse = responseTransformer(lastResponse, doc.ChainRequestOption)
+	if lastResponse != nil && inputDoc.ChainRequestOption != nil {
+		lastResponse = responseTransformer(lastResponse, inputDoc.ChainRequestOption)
 	}
 	// TODO: lastResponse doc.ChainRequestOption a göre işlemden geçirildikten sonra val.Form.FromInterface fonksiyonuna aktarılacak
 	// Ana blokta da bu işlemin aynı gerekiyor.
-	if doc.Dispatchings != nil {
-		for _, val := range doc.Dispatchings {
+	if inputDoc.Dispatchings != nil {
+		for _, val := range inputDoc.Dispatchings {
 			val.Form.FromInterface(lastResponse)
-			err = dispatchTracker(val)
+			outputDocNew := &model.Document{}
+			if &val.Security.Licence == nil || val.Security.Licence == "" {
+				val.Security.Licence = inputDoc.Security.Licence
+			}
+			err = dispatchTracker(val, outputDocNew)
 			if err != nil {
 				return err
 			}
@@ -137,30 +149,43 @@ func dispatchTracker(doc *model.Document) (err error) {
 	return
 }
 
-func transactionRunner(transaction *model.Transaction, doc *model.Document) (output *interface{}, err error) {
-	if doc.Type == constants.DOC_TYPE_PROCEDURE {
+func transactionRunner(transaction *model.Transaction, inputDoc *model.Document, outputDoc *model.Document) (err error) {
+	if inputDoc.Type == constants.DOC_TYPE_PROCEDURE {
 		inputProcedure := &model.Procedure{}
 		outputProcedure := &model.Procedure{}
 		inputProcedure.FromRequestType((*transaction).GetRequestType())
 		outputProcedure.FromResponseType((*transaction).GetResponse())
-		output := interface{}(inputProcedure)
-		doc.Output = outputProcedure
-		doc.Type = constants.DOC_TYPE_PROCEDURE
-		return &output, nil
+		outputDoc.Output = outputProcedure
+		transactionOptions := (*transaction).GetOptions()
+		outputDoc.Options = &transactionOptions
+		outputDoc.Type = constants.DOC_TYPE_PROCEDURE
+		return nil
 	}
-	err = RequestHandler(*doc, transaction)
+	err = RequestHandler(inputDoc, transaction)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if transaction != nil {
+		if (*transaction).GetOptions().Security.LicenceChecker {
+			token := inputDoc.Security.Licence
+
+			if token != "" {
+				isValidToken := (*transaction).LicenceChecker(token)
+				if !isValidToken {
+					return errors.New("licence not found")
+				}
+			} else {
+				return errors.New("licence not found")
+			}
+		}
 		err := (*transaction).Transact()
-		output := (*transaction).GetResponse()
-		doc.Type = constants.DOC_TYPE_RESULT
-		return &output, err
+		outputDoc.Output = (*transaction).GetResponse()
+		outputDoc.Type = constants.DOC_TYPE_RESULT
+		return err
 	}
 
-	return nil, errors.New("An unidentified error has occurred")
+	return errors.New("an unidentified error has occurred")
 }
 
 type RegisterDispatcher struct {
@@ -168,9 +193,8 @@ type RegisterDispatcher struct {
 	Port     string
 }
 
-func responseTransformer(response interface{}, chainRequestOption model.ChainRequestOption) interface{} {
+func responseTransformer(response interface{}, chainRequestOption model.ChainRequestOption) (responseMap map[string]interface{}) {
 	responseByte, _ := json.Marshal(response)
-	var responseMap map[string]interface{}
 	json.Unmarshal(responseByte, &responseMap)
 	for key, val := range chainRequestOption {
 		if _, ok := responseMap[key]; ok {
@@ -178,45 +202,5 @@ func responseTransformer(response interface{}, chainRequestOption model.ChainReq
 		}
 	}
 
-	return responseMap
-}
-
-type Responder struct {
-	rw  http.ResponseWriter
-	doc model.Document
-}
-
-func newResponder(rw http.ResponseWriter, doc model.Document) Responder {
-	responder := Responder{rw: rw, doc: doc}
-	responder.rw.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
-
-	return responder
-}
-
-func (r *Responder) writeResponse(output interface{}, documentType string) {
-	r.doc.Type = documentType
-	r.doc.Output = output
-	response, _ := json.Marshal(r.doc)
-	fmt.Fprint(r.rw, string(response))
-}
-
-func (r *Responder) writeError(err error) {
-	r.doc.Type = constants.DOC_TYPE_ERROR
-	r.doc.Error = err.Error()
-	response, _ := json.Marshal(r.doc)
-	fmt.Fprint(r.rw, string(response))
-}
-
-func (r *Responder) writeProcedure(procedure interface{}) {
-	r.doc.Procedure = procedure
-	response, _ := json.Marshal(r.doc)
-	fmt.Fprint(r.rw, string(response))
-}
-
-func (r *Responder) writeDocument() {
-	if &r.doc.Type == nil || r.doc.Type == "" {
-		r.doc.Type = constants.DOC_TYPE_RESULT
-	}
-	response, _ := json.Marshal(r.doc)
-	fmt.Fprint(r.rw, string(response))
+	return
 }
