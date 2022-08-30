@@ -7,6 +7,7 @@ type Transaction interface {
 	GetResponse() interface{}
 	GetOptions() TransactionOptions
 	LicenceChecker(licence string) bool
+	SetToken(token string)
 }
 
 type TransactionOptions struct {

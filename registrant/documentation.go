@@ -118,6 +118,7 @@ func (r Documentation) DocumentVerification(inputDoc *model.Document, transactio
 
 		if token != "" {
 			isValidToken := (*transaction).LicenceChecker(token)
+			(*transaction).SetToken(inputDoc.Security.Licence)
 			if !isValidToken {
 				return errors.New("licence not found")
 			}
