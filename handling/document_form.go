@@ -3,8 +3,8 @@ package handling
 import (
 	"encoding/json"
 	"fmt"
-	"dispatcher/constants"
-	"dispatcher/utilities"
+	"github.com/denizakturk/dispatcher/constants"
+	"github.com/denizakturk/dispatcher/utilities"
 	"reflect"
 )
 

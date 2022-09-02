@@ -1,9 +1,9 @@
 package registrant
 
 import (
-	"dispatcher/constants"
-	"dispatcher/handling"
-	"dispatcher/model"
+	"github.com/denizakturk/dispatcher/constants"
+	"github.com/denizakturk/dispatcher/handling"
+	"github.com/denizakturk/dispatcher/model"
 	"encoding/json"
 	"errors"
 )

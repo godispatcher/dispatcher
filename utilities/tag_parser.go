@@ -1,8 +1,9 @@
 package utilities
 
 import (
-	"dispatcher/constants"
 	"strings"
+
+	"github.com/denizakturk/dispatcher/constants"
 )
 
 type TransactionExchangeTag struct {

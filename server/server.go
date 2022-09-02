@@ -1,9 +1,9 @@
 package server
 
 import (
-	"dispatcher/constants"
-	"dispatcher/model"
-	"dispatcher/registrant"
+	"github.com/denizakturk/dispatcher/constants"
+	"github.com/denizakturk/dispatcher/model"
+	"github.com/denizakturk/dispatcher/registrant"
 	"encoding/json"
 	"fmt"
 	"log"

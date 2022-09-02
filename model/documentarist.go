@@ -1,7 +1,7 @@
 package model
 
 import (
-	"dispatcher/constants"
+	"github.com/denizakturk/dispatcher/constants"
 	"encoding/json"
 	"fmt"
 	"net/http"

@@ -1,8 +1,8 @@
 package handling
 
 import (
-	"dispatcher/constants"
-	"dispatcher/model"
+	"github.com/denizakturk/dispatcher/constants"
+	"github.com/denizakturk/dispatcher/model"
 	"encoding/json"
 	"log"
 )

@@ -1,7 +1,7 @@
 package model
 
 import (
-	"dispatcher/utilities"
+	"github.com/denizakturk/dispatcher/utilities"
 	"encoding/json"
 	"reflect"
 )

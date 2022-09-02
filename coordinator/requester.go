@@ -1,8 +1,8 @@
 package coordinator
 
 import (
-	"dispatcher/model"
-	"dispatcher/registrant"
+	"github.com/denizakturk/dispatcher/model"
+	"github.com/denizakturk/dispatcher/registrant"
 )
 
 func ExecuteTransaction(department string, transaction string, form map[string]interface{}) *model.Document {
