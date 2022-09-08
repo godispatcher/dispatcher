@@ -1,11 +1,12 @@
 package registrant
 
 import (
+	"encoding/json"
+	"errors"
+
 	"github.com/denizakturk/dispatcher/constants"
 	"github.com/denizakturk/dispatcher/handling"
 	"github.com/denizakturk/dispatcher/model"
-	"encoding/json"
-	"errors"
 )
 
 func NewDocumentation(documentairst *model.Documentarist) *Documentation {
@@ -15,6 +16,7 @@ func NewDocumentation(documentairst *model.Documentarist) *Documentation {
 
 type Documentation struct {
 	Documentarist *model.Documentarist
+	Transaction   model.Transaction
 }
 
 func (r *Documentation) DocumentEnforcer() {
@@ -25,7 +27,7 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 	outputDoc.Department = inputDoc.Department
 	outputDoc.Transaction = inputDoc.Transaction
 	var lastResponse interface{} = nil
-	transaction, err := r.TransactionMatcher(inputDoc)
+	transactionHolder, err := r.TransactionMatcher(inputDoc)
 	if err != nil {
 		outputDoc.Type = constants.DOCUMENT_PARSING_ERROR
 		outputDoc.Error = err.Error()
@@ -33,24 +35,31 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 	}
 
 	if inputDoc.Type == constants.DOC_TYPE_PROCEDURE {
-		r.TransactionProceduring(transaction, outputDoc)
+		r.TransactionProceduring(transactionHolder, outputDoc)
 	} else {
-		err = r.ParameterPasser(transaction, inputDoc.Form)
+
+		err = r.ParameterValidator(transactionHolder, inputDoc.Form)
+		if err != nil {
+			outputDoc.Type = constants.DOC_TYPE_ERROR
+			outputDoc.Error = err.Error()
+			return
+		}
+		err = r.InitTransaction(transactionHolder)
+		if err != nil {
+			outputDoc.Type = constants.DOCUMENT_PARSING_ERROR
+			outputDoc.Error = err.Error()
+			return
+		}
+
+		err = r.DocumentVerification(inputDoc, transactionHolder)
+
 		if err != nil {
 			outputDoc.Type = constants.DOC_TYPE_ERROR
 			outputDoc.Error = err.Error()
 			return
 		}
 
-		err = r.DocumentVerification(inputDoc, transaction)
-
-		if err != nil {
-			outputDoc.Type = constants.DOC_TYPE_ERROR
-			outputDoc.Error = err.Error()
-			return
-		}
-
-		err = r.ProcessTransact(transaction, outputDoc)
+		err = r.ProcessTransact(transactionHolder, outputDoc)
 		if err != nil {
 			outputDoc.Type = constants.DOC_TYPE_ERROR
 			outputDoc.Error = err.Error()
@@ -83,42 +92,41 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 	}
 }
 
-func (r Documentation) TransactionMatcher(inputDoc *model.Document) (transaction *model.Transaction, err error) {
-FirstLoop:
+func (r Documentation) TransactionMatcher(inputDoc *model.Document) (transactionHolder model.TransactionHolder, err error) {
+
 	for _, department := range DepartmentRegistering {
 		if department.Name == inputDoc.Department {
-			for name, findedTransaction := range department.Transactions {
-				if name == inputDoc.Transaction {
-					transaction = &findedTransaction
-					break FirstLoop
+			for _, findedTransaction := range department.Transactions {
+				if findedTransaction.Name == inputDoc.Transaction {
+					return findedTransaction, nil
 				}
 			}
 		}
 	}
 
-	if transaction == nil {
-		err = errors.New(constants.TRANSACTION_NOT_FOUND)
-	}
-
-	return transaction, err
+	return transactionHolder, errors.New(constants.TRANSACTION_NOT_FOUND)
 }
 
-func (r Documentation) ParameterPasser(transaction *model.Transaction, form model.DocumentForm) error {
+func (r *Documentation) InitTransaction(transactionHolder model.TransactionHolder) (err error) {
+	r.Transaction, err = transactionHolder.InitTransaction(*r.Documentarist.Input)
+	return
+}
+
+func (r Documentation) ParameterValidator(transactionHolder model.TransactionHolder, form model.DocumentForm) error {
 	formString, _ := formToString(form)
-	(*transaction).SetRequest(formString)
 	documentFormValidater := handling.DocumentFormValidater{Request: formString}
-	reqType := (*transaction).GetRequestType()
+	reqType := transactionHolder.Type.GetRequest()
 
 	return documentFormValidater.Validate(reqType)
 }
 
-func (r Documentation) DocumentVerification(inputDoc *model.Document, transaction *model.Transaction) error {
-	if (*transaction).GetOptions().Security.LicenceChecker {
+func (r Documentation) DocumentVerification(inputDoc *model.Document, transactionHolder model.TransactionHolder) error {
+	if transactionHolder.Options.GetOptions().Security.LicenceChecker {
 		token := inputDoc.Security.Licence
 
 		if token != "" {
-			isValidToken := (*transaction).LicenceChecker(token)
-			(*transaction).SetToken(inputDoc.Security.Licence)
+			isValidToken := transactionHolder.LicenceValidator(token)
+
 			if !isValidToken {
 				return errors.New("licence not found")
 			}
@@ -129,22 +137,25 @@ func (r Documentation) DocumentVerification(inputDoc *model.Document, transactio
 	return nil
 }
 
-func (r Documentation) TransactionProceduring(transaction *model.Transaction, outputDoc *model.Document) {
+func (r Documentation) TransactionProceduring(transactionHolder model.TransactionHolder, outputDoc *model.Document) {
 	inputProcedure := &model.Procedure{}
 	outputProcedure := &model.Procedure{}
-	inputProcedure.FromRequestType((*transaction).GetRequestType())
-	outputProcedure.FromResponseType((*transaction).GetResponse())
+	inputProcedure.FromRequestType(transactionHolder.Type.GetRequest())
+	outputProcedure.FromResponseType(transactionHolder.Type.GetResponse())
 	outputDoc.Output = outputProcedure
-	transactionOptions := (*transaction).GetOptions()
+	outputDoc.Procedure = inputProcedure
+	transactionOptions := transactionHolder.Options.GetOptions()
 	outputDoc.Options = &transactionOptions
 	outputDoc.Type = constants.DOC_TYPE_PROCEDURE
 }
 
-func (r Documentation) ProcessTransact(transaction *model.Transaction, outputDoc *model.Document) error {
-	err := (*transaction).Transact()
-	outputDoc.Output = (*transaction).GetResponse()
+func (r Documentation) ProcessTransact(transactionHolder model.TransactionHolder, outputDoc *model.Document) error {
+	response, err := r.Transaction.Transact()
+	if err != nil {
+		return err
+	}
+	outputDoc.Output = response
 	outputDoc.Type = constants.DOC_TYPE_RESULT
-
 	return err
 }
 

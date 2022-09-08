@@ -1,10 +1,11 @@
 package model
 
 import (
-	"github.com/denizakturk/dispatcher/constants"
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/denizakturk/dispatcher/constants"
 )
 
 type Documentarist struct {
@@ -15,8 +16,9 @@ type Documentarist struct {
 
 func NewDocumentarist(rw http.ResponseWriter, Input *Document) Documentarist {
 	documentarist := Documentarist{Input: Input, ResponseWriter: rw, Output: &Document{}}
-	documentarist.ResponseWriter.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
-
+	if documentarist.ResponseWriter != nil {
+		documentarist.ResponseWriter.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
+	}
 	return documentarist
 }
 

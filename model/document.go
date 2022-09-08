@@ -1,9 +1,10 @@
 package model
 
 import (
-	"github.com/denizakturk/dispatcher/utilities"
 	"encoding/json"
 	"reflect"
+
+	"github.com/denizakturk/dispatcher/utilities"
 )
 
 type DocumentForm map[string]interface{}
@@ -68,6 +69,9 @@ func (p *Procedure) FromResponseType(responseType interface{}) {
 	typeof := reflect.TypeOf(responseType)
 	valueOf := reflect.ValueOf(responseType)
 
+	if responseType == nil || valueOf.NumField() < 1 {
+		return
+	}
 	for i := 0; i < valueOf.NumField(); i++ {
 		field := typeof.Field(i)
 		tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(field.Tag))

@@ -1,18 +1,15 @@
 package server
 
 import (
-	"github.com/denizakturk/dispatcher/constants"
-	"github.com/denizakturk/dispatcher/model"
-	"github.com/denizakturk/dispatcher/registrant"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/denizakturk/dispatcher/registrant"
 )
 
 func InitServer(register registrant.RegisterDispatcher) {
 	http.HandleFunc("/", register.MainFunc)
-	http.HandleFunc("/help", RequestHelper)
+	//http.HandleFunc("/help", RequestHelper)
 	log.Fatal(http.ListenAndServe(":"+register.Port, nil))
 }
 
@@ -30,6 +27,7 @@ type HelperList struct {
 	Departments []DepartmentListHelper `json:"departments"`
 }
 
+/*
 func RequestHelper(res http.ResponseWriter, req *http.Request) {
 	helperList := HelperList{}
 	for _, val := range registrant.DepartmentRegistering {
@@ -41,7 +39,7 @@ func RequestHelper(res http.ResponseWriter, req *http.Request) {
 			if !req.URL.Query().Has("short") || req.URL.Query().Get("short") == "0" {
 				requestProcedure := model.Procedure{}
 				responseProcedure := model.Procedure{}
-				requestProcedure.FromRequestType(v.GetRequestType())
+				requestProcedure.FromRequestType(v.GetRequest())
 				responseProcedure.FromRequestType(v.GetResponse())
 				transaction.Procudure = requestProcedure
 				transaction.Output = responseProcedure
@@ -54,3 +52,4 @@ func RequestHelper(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_JSON)
 	fmt.Fprint(res, string(response))
 }
+*/

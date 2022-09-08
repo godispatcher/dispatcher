@@ -1,13 +1,9 @@
 package model
 
 type Transaction interface {
-	Transact() error
-	SetRequest(req string)
-	GetRequestType() interface{}
+	Transact() (interface{}, error)
+	GetRequest() interface{}
 	GetResponse() interface{}
-	GetOptions() TransactionOptions
-	LicenceChecker(licence string) bool
-	SetToken(token string)
 }
 
 type TransactionOptions struct {
@@ -20,4 +16,15 @@ func (m *TransactionOptions) GetOptions() TransactionOptions {
 
 type SecurityOptions struct {
 	LicenceChecker bool `json:"licence_checker,omitempty"`
+}
+
+type LicenceValidator func(licence string) (isValid bool)
+
+type TransactionHolder struct {
+	Name             string
+	Slug             string
+	Options          TransactionOptions
+	InitTransaction  func(document Document) (Transaction, error)
+	Type             Transaction
+	LicenceValidator LicenceValidator
 }

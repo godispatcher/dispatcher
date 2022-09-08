@@ -22,7 +22,7 @@ type Department struct {
 type Transaction interface {
 	Transact() error
 	SetRequest(req string)
-	GetRequestType() interface{}
+	GetRequest() interface{}
 	GetResponse() interface{}
 	GetOptions() TransactionOptions
 	LicenceChecker(licence string) bool
@@ -65,7 +65,7 @@ func (t *ProductCreate) GetResponse() interface{} {
 
 }
 
-func (t *ProductCreate) GetRequestType() interface{} {
+func (t *ProductCreate) GetRequest() interface{} {
 	return t.Request
 }
 
