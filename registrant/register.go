@@ -1,10 +1,10 @@
 package registrant
 
 import (
-	"github.com/denizakturk/dispatcher/constants"
+	"net/http"
+
 	"github.com/denizakturk/dispatcher/handling"
 	"github.com/denizakturk/dispatcher/model"
-	"net/http"
 )
 
 func NewRegisterDispatch() RegisterDispatcher {
@@ -14,12 +14,17 @@ func NewRegisterDispatch() RegisterDispatcher {
 		body, err := handling.RequestHandle(req)
 		if err != nil {
 			errDoc := &model.Document{}
-			errDoc.Error = err.Error()
-			errDoc.Type = constants.DOC_TYPE_ERROR
 			documentarist := model.NewDocumentarist(rw, errDoc)
-			documentarist.Write()
+			documentarist.WriteError(err)
+			return
 		}
-		inputDoc := handling.RequestBodyToDocument(body)
+		inputDoc, err := handling.RequestBodyToDocument(body)
+		if err != nil {
+			errDoc := &model.Document{}
+			documentarist := model.NewDocumentarist(rw, errDoc)
+			documentarist.WriteError(err)
+			return
+		}
 		documentarist := model.NewDocumentarist(rw, inputDoc)
 		documentation := NewDocumentation(&documentarist)
 
