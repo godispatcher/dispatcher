@@ -1,21 +1,22 @@
 package handling
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/denizakturk/dispatcher/constants"
 	"github.com/denizakturk/dispatcher/model"
-	"encoding/json"
-	"log"
 )
 
-func RequestBodyToDocument(body []byte) *model.Document {
+func RequestBodyToDocument(body []byte) (*model.Document, error) {
 	document := &model.Document{}
 	err := json.Unmarshal(body, &document)
 
 	if err != nil {
-		log.Printf(constants.DOCUMENT_PARSING_ERROR, err)
+		return nil, fmt.Errorf(constants.DOCUMENT_PARSING_ERROR, err)
 	}
 
-	return document
+	return document, nil
 }
 
 type TransactionExchangeConverter struct{}

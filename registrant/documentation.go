@@ -29,7 +29,7 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 	var lastResponse interface{} = nil
 	transactionHolder, err := r.TransactionMatcher(inputDoc)
 	if err != nil {
-		outputDoc.Type = constants.DOCUMENT_PARSING_ERROR
+		outputDoc.Type = constants.DOC_TYPE_ERROR
 		outputDoc.Error = err.Error()
 		return
 	}
@@ -46,7 +46,7 @@ func (r Documentation) TransactionEnforcer(inputDoc *model.Document, outputDoc *
 		}
 		err = r.InitTransaction(transactionHolder)
 		if err != nil {
-			outputDoc.Type = constants.DOCUMENT_PARSING_ERROR
+			outputDoc.Type = constants.DOC_TYPE_ERROR
 			outputDoc.Error = err.Error()
 			return
 		}
