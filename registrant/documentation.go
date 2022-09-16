@@ -138,12 +138,9 @@ func (r Documentation) DocumentVerification(inputDoc *model.Document, transactio
 }
 
 func (r Documentation) TransactionProceduring(transactionHolder model.TransactionHolder, outputDoc *model.Document) {
-	inputProcedure := &model.Procedure{}
-	outputProcedure := &model.Procedure{}
-	inputProcedure.FromRequestType(transactionHolder.Type.GetRequest())
-	outputProcedure.FromResponseType(transactionHolder.Type.GetResponse())
-	outputDoc.Output = outputProcedure
-	outputDoc.Procedure = inputProcedure
+	analyser := model.VariableAnalyser{}
+	outputDoc.Output = analyser.ItemAnalysis(transactionHolder.Type.GetResponse())
+	outputDoc.Procedure = analyser.ItemAnalysis(transactionHolder.Type.GetRequest())
 	transactionOptions := transactionHolder.Options.GetOptions()
 	outputDoc.Options = &transactionOptions
 	outputDoc.Type = constants.DOC_TYPE_PROCEDURE

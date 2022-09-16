@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"github.com/denizakturk/dispatcher/utilities"
 )
@@ -43,40 +44,79 @@ type ProcedureItem struct {
 	Type    string `json:"type"`
 }
 
-type Procedure map[string]ProcedureItem
-
-func (p *Procedure) FromRequestType(requestType interface{}) {
-	typeof := reflect.TypeOf(requestType)
-	valueOf := reflect.ValueOf(requestType)
-
-	for i := 0; i < valueOf.NumField(); i++ {
-		field := typeof.Field(i)
-		tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(field.Tag))
-
-		procedureItem := ProcedureItem{}
+func NewProcedureItem(fieldType string, tagOption *utilities.TransactionExchangeTag) ProcedureItem {
+	procedureItem := ProcedureItem{}
+	if tagOption != nil {
 		if tagOption.Require != nil {
 			procedureItem.Require = *tagOption.Require
 		}
 		if tagOption.IsEmpty != nil {
 			procedureItem.IsEmpty = *tagOption.IsEmpty
 		}
-		procedureItem.Type = field.Type.Name()
-		(*p)[tagOption.FieldRawname] = procedureItem
 	}
+	procedureItem.Type = fieldType
+
+	return procedureItem
 }
 
-func (p *Procedure) FromResponseType(responseType interface{}) {
-	typeof := reflect.TypeOf(responseType)
-	valueOf := reflect.ValueOf(responseType)
+type StructVariable map[string]interface{}
+type SliceVariable []interface{}
 
-	if responseType == nil || valueOf.NumField() < 1 {
-		return
+type VariableAnalyser struct {
+}
+
+func (a VariableAnalyser) ItemAnalysis(variable interface{}) interface{} {
+	typeOf := a.TypeOf(variable)
+	valueOf := a.ValueOf(variable)
+	if typeOf.Kind() == reflect.Ptr {
+		valueOf = reflect.Indirect(valueOf)
+		typeOf = valueOf.Type()
 	}
-	for i := 0; i < valueOf.NumField(); i++ {
-		field := typeof.Field(i)
-		tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(field.Tag))
-		procedureItem := ProcedureItem{}
-		procedureItem.Type = field.Type.Name()
-		(*p)[tagOption.FieldRawname] = procedureItem
+	var output interface{}
+	if typeOf.Kind() == reflect.Struct {
+		structVariable := StructVariable{}
+		for i := 0; i < valueOf.NumField(); i++ {
+			fieldType := typeOf.Field(i)
+			fieldValue := valueOf.Field(i)
+			tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(fieldType.Tag))
+			if fieldType.Type.Kind() == reflect.Slice {
+				val := reflect.New(fieldType.Type.Elem())
+				var out []interface{}
+				out = append(out, a.ItemAnalysis(val.Interface()))
+				structVariable[tagOption.FieldRawname] = out
+			} else {
+				structVariable[tagOption.FieldRawname] = a.ItemAnalysis(fieldValue.Interface())
+			}
+		}
+		output = structVariable
+	} else if typeOf.Kind() == reflect.Slice {
+		sliceVariable := SliceVariable{}
+		if valueOf.Len() == 0 {
+			val := reflect.New(typeOf.Elem())
+			sliceVariable = append(sliceVariable, a.ItemAnalysis(val.Interface()))
+		} else {
+			for i := 0; i < valueOf.Len(); i++ {
+				fieldType := typeOf.Field(i)
+				tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(fieldType.Tag))
+				sliceVariable = append(sliceVariable, NewProcedureItem(fieldType.Type.Name(), &tagOption))
+			}
+		}
+		output = sliceVariable
+	} else if typeOf.Kind() == reflect.String {
+		output = NewProcedureItem("string", nil)
+	} else if typeOf.Kind() == reflect.Func {
+		output = NewProcedureItem("function", nil)
+	} else if strings.Contains("int|int8|int16|int32|int64", typeOf.Kind().String()) {
+		output = NewProcedureItem("number", nil)
 	}
+
+	return output
+}
+
+func (a VariableAnalyser) ValueOf(variable interface{}) reflect.Value {
+	return reflect.ValueOf(variable)
+}
+
+func (a VariableAnalyser) TypeOf(variable interface{}) reflect.Type {
+	return reflect.TypeOf(variable)
 }
