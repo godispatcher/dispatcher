@@ -87,7 +87,6 @@ func (a VariableAnalyser) ItemAnalysis(variable interface{}) interface{} {
 				} else {
 					out = append(out, NewProcedureItem(val.Type().Name(), nil))
 				}
-
 				structVariable[tagOption.FieldRawname] = out
 			} else {
 				if fieldValue.CanInterface() {
@@ -107,7 +106,6 @@ func (a VariableAnalyser) ItemAnalysis(variable interface{}) interface{} {
 			} else {
 				sliceVariable = append(sliceVariable, NewProcedureItem(val.Type().Name(), nil))
 			}
-
 		} else {
 			for i := 0; i < valueOf.Len(); i++ {
 				fieldType := typeOf.Field(i)
