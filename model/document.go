@@ -82,10 +82,19 @@ func (a VariableAnalyser) ItemAnalysis(variable interface{}) interface{} {
 			if fieldType.Type.Kind() == reflect.Slice {
 				val := reflect.New(fieldType.Type.Elem())
 				var out []interface{}
-				out = append(out, a.ItemAnalysis(val.Interface()))
+				if val.CanInterface() {
+					out = append(out, a.ItemAnalysis(val.Interface()))
+				} else {
+					out = append(out, NewProcedureItem(val.Type().Name(), nil))
+				}
+
 				structVariable[tagOption.FieldRawname] = out
 			} else {
-				structVariable[tagOption.FieldRawname] = a.ItemAnalysis(fieldValue.Interface())
+				if fieldValue.CanInterface() {
+					structVariable[tagOption.FieldRawname] = a.ItemAnalysis(fieldValue.Interface())
+				} else {
+					structVariable[tagOption.FieldRawname] = NewProcedureItem(typeOf.Name(), nil)
+				}
 			}
 		}
 		output = structVariable
@@ -93,7 +102,12 @@ func (a VariableAnalyser) ItemAnalysis(variable interface{}) interface{} {
 		sliceVariable := SliceVariable{}
 		if valueOf.Len() == 0 {
 			val := reflect.New(typeOf.Elem())
-			sliceVariable = append(sliceVariable, a.ItemAnalysis(val.Interface()))
+			if val.CanInterface() {
+				sliceVariable = append(sliceVariable, a.ItemAnalysis(val.Interface()))
+			} else {
+				sliceVariable = append(sliceVariable, NewProcedureItem(val.Type().Name(), nil))
+			}
+
 		} else {
 			for i := 0; i < valueOf.Len(); i++ {
 				fieldType := typeOf.Field(i)
