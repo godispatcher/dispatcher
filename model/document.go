@@ -138,6 +138,9 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 	typeOf := reflect.TypeOf(variable)
 	valueOf := reflect.ValueOf(variable)
 	var output interface{}
+	if typeOf == nil {
+		return "any"
+	}
 	switch typeOf.Kind() {
 	case reflect.Struct:
 		(*nestedTypes) = append(*nestedTypes, typeOf.String())
