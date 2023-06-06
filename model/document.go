@@ -143,7 +143,6 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 	}
 	switch typeOf.Kind() {
 	case reflect.Struct:
-		(*nestedTypes) = append(*nestedTypes, typeOf.String())
 		methodVal := valueOf.MethodByName("MarshalJSON")
 		if methodVal.IsValid() {
 			byteData, _ := json.Marshal(variable)
@@ -151,6 +150,7 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 			break
 		}
 		structVar := StructVariable{}
+		(*nestedTypes) = append(*nestedTypes, typeOf.Name())
 	NEXTLOOP:
 		for i := 0; i < valueOf.NumField(); i++ {
 			f := valueOf.Field(i)
@@ -158,9 +158,12 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 			tagOption, _ := utilities.ParseTagToTransactionExchangeTag(string(ft.Tag))
 			switch f.Type().Kind() {
 			case reflect.Map, reflect.Slice, reflect.Ptr:
-				for _, val := range *nestedTypes {
-					if strings.Contains(f.Type().String(), val) {
-						structVar[tagOption.FieldRawname] = "<- self"
+				backIcon := strings.Builder{}
+				for i := len(*nestedTypes) - 1; i >= 0; i-- {
+					item := (*nestedTypes)[i]
+					backIcon.WriteString("<")
+					if strings.Compare(ft.Type.Elem().Name(), item) == 0 {
+						structVar[tagOption.FieldRawname] = backIcon.String() + "- Parent"
 						continue NEXTLOOP
 					}
 				}
