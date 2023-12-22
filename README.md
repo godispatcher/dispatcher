@@ -1,5 +1,9 @@
 # Dispatcher
 
+İster küçük/orta ölçekli, ister büyük ölçekli bir hizmet tasarlıyor olun, bunların hepsini dağıtıcı mimarisiyle oluşturabilirsiniz.
+
+Whether you are designing a small/medium-sized or large-scale service, you can create them all with a dispatcher architecture.
+
 Tek bir function ile servisinizi sunmaya başlayın.
 ---
 **Start serving your service with just a single function.**
