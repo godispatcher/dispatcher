@@ -81,8 +81,8 @@ src/department/example.go
 package department
 
 import (
-    "github.com/denizakturk/dispatcher/middleware"
-    "github.com/denizakturk/dispatcher/model"
+	"github.com/denizakturk/dispatcher/middleware"
+	"github.com/denizakturk/dispatcher/model"
 )
 
 type LicenceCheckerMiddleware[Req, Res any] struct {
@@ -98,22 +98,31 @@ func (m LicenceCheckerMiddleware[Req, Res]) LicenceChecker(licence string) bool 
 }
 
 func (m *LicenceCheckerMiddleware[Req, Res]) InitTransaction(document model.Document) (err error) {
-    err = m.Middleware.InitTransaction(document)
-    if err != nil {
-        return err
-    }
-    m.SetToken(document.Security.Licence)
-    return err
+	err = m.Middleware.InitTransaction(document)
+	if err != nil {
+		return err
+	}
+	m.SetToken(document.Security.Licence)
+	return err
+}
+
+type Request struct {
+	Name string `json:"name"`
+}
+
+type Response struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
 }
 
 type Example struct {
-LicenceCheckerMiddleware[Request, Response]
+	LicenceCheckerMiddleware[Request, Response]
 }
 
 func (t Example) Transact() (interface{}, error) {
-response := Response{Name: t.Request.ID + " Name", Token: t.Token}
-
-return response, nil
+	t.Response.Name = "Hello " + t.Request.Name
+	t.Response.Token = t.Token
+	return t.Response, nil
 }
 
 ```
@@ -122,7 +131,36 @@ Dispatcher'a register ettiğiniz hizmetleri girdi/çıktı parametrelerini görm
 Bir nevi dökümantasyon
 
 Projeyi 9000 portunda local'inizde çalıştırdığınızı varsayıyoruz
+
     http://localhost:9000/help
 adresine yapacağınız istekde size tüm department/transaction listesini verecektir, 
 ayrıca kısa versiyonunu görmek için
+
     http://localhost:9000/help?short=1
+
+İstemcilerden servisi nasıl çağırabiliriz?
+---
+How to call dispatcher service from a clinet?
+```json
+{
+    "department":"Example",
+    "transaction":"example",
+    "form":{
+      "name":"Deniz",
+    },
+    "chain_request_option":{
+      "message":"name"
+    },
+    "dispatchings": [{
+        "department":"Messages", 
+        "transaction":"send-message"
+    }],
+    "security":{
+      "licence":"LICENCE_STRING"
+    }
+}
+
+```
+
+Herhangi bir istemciden servise erişmek için json isteği göndermelisiniz, bunun için isteğin başlık kısmında Content-Type: Application/json bilgisi yer almalıdır.
+Örnekte olduğu gibi bir json gönderdiğinizde servise erişmiş ve cevap alıyor olacaksınız.
