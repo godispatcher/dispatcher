@@ -22,3 +22,5 @@ dispatcher
 
 # Test file
 main.go
+
+.idea/
