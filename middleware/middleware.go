@@ -12,6 +12,7 @@ type MiddlewareInterface interface {
 	LicenceChecker(licence string) bool
 	SetRequest(form model.DocumentForm) error
 	Defaults()
+	IsLicenceRequired() bool
 	model.Transaction
 }
 
@@ -28,6 +29,15 @@ type Middleware[Req, Res any] struct {
 	TransactionName string
 	Request         Req
 	Response        Res
+	LicenceRequired bool
+}
+
+func (m *Middleware[Req, Res]) Defaults() {
+	m.LicenceRequired = false
+}
+
+func (m Middleware[Req, Res]) IsLicenceRequired() bool {
+	return m.LicenceRequired
 }
 
 func (m Middleware[Req, Res]) GetDepartmentName() string {

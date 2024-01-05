@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -60,12 +60,12 @@ func RequestHandle(req *http.Request) ([]byte, error) {
 		return restToDispatcher(req)
 	}
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, fmt.Errorf(constants.REQUEST_BODY_READ_ERROR, err)
 	}
 
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	req.Body = io.NopCloser(bytes.NewBuffer(body))
 	contentType := req.Header.Get("Content-Type")
 	if contentType != ContentTypeApplicationJson {
 		return nil, fmt.Errorf(constants.CONTENT_TYPE_NOT_JSON)

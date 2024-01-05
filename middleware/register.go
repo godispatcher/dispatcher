@@ -32,7 +32,7 @@ func (m *DepartmentsManagement) AddTransaction(transaction TransactionInit) erro
 			InitTransaction: transaction.Init,
 			Options: model.TransactionOptions{
 				Security: model.SecurityOptions{
-					LicenceChecker: true,
+					LicenceChecker: transaction.Type.IsLicenceRequired(),
 				},
 			},
 			LicenceValidator: transaction.Type.LicenceChecker,

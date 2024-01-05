@@ -121,14 +121,11 @@ func (r Documentation) ParameterValidator(transactionHolder model.TransactionHol
 }
 
 func (r Documentation) DocumentVerification(inputDoc *model.Document, transactionHolder model.TransactionHolder) error {
-	if transactionHolder.Options.GetOptions().Security.LicenceChecker {
-		token := inputDoc.Security.Licence
-
-		if token != "" {
-			isValidToken := transactionHolder.LicenceValidator(token)
-
+	if transactionHolder.Options.GetOptions().Security.LicenceChecker == true {
+		if inputDoc.Security != nil && inputDoc.Security.Licence != "" {
+			isValidToken := transactionHolder.LicenceValidator(inputDoc.Security.Licence)
 			if !isValidToken {
-				return errors.New("licence not found")
+				return errors.New("licence not valid")
 			}
 		} else {
 			return errors.New("licence not found")
