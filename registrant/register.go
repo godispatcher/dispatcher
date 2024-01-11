@@ -7,10 +7,21 @@ import (
 	"github.com/denizakturk/dispatcher/model"
 )
 
+type RequestFilter func(rw http.ResponseWriter, req *http.Request) bool
+
+var RequestFilterHolder []RequestFilter
+
 func NewRegisterDispatch() RegisterDispatcher {
 	dispatch := RegisterDispatcher{}
 
 	dispatch.MainFunc = func(rw http.ResponseWriter, req *http.Request) {
+		if RequestFilterHolder != nil {
+			for _, filter := range RequestFilterHolder {
+				if !filter(rw, req) {
+					return
+				}
+			}
+		}
 		body, err := handling.RequestHandle(req)
 		if err != nil {
 			errDoc := &model.Document{}
