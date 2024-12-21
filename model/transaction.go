@@ -10,8 +10,8 @@ type TransactionOptions struct {
 	Security SecurityOptions `json:"security,omitempty"`
 }
 
-func (m *TransactionOptions) GetOptions() TransactionOptions {
-	return *m
+func (m TransactionOptions) GetOptions() TransactionOptions {
+	return m
 }
 
 type SecurityOptions struct {
@@ -19,12 +19,3 @@ type SecurityOptions struct {
 }
 
 type LicenceValidator func(licence string) (isValid bool)
-
-type TransactionHolder struct {
-	Name             string
-	Slug             string
-	Options          TransactionOptions
-	InitTransaction  func(document Document) (Transaction, error)
-	Type             Transaction
-	LicenceValidator LicenceValidator
-}

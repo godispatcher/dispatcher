@@ -1,12 +1,11 @@
-package handling
+package model
 
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-
 	"github.com/denizakturk/dispatcher/constants"
 	"github.com/denizakturk/dispatcher/utilities"
+	"reflect"
 )
 
 type DocumentFormValidater struct {
@@ -55,7 +54,6 @@ func (v *DocumentFormValidater) Validate(TransactionRequestType interface{}) err
 				}
 			}
 		}
-
 	}
 
 	return nil
