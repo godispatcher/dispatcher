@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"github.com/denizakturk/dispatcher/middleware"
 	"github.com/denizakturk/dispatcher/model"
 )
 
@@ -10,6 +11,9 @@ type Transaction[T any] interface {
 	GetRequest() any
 	GetResponse() any
 	Transact() error
+	GetRunables() []middleware.MiddlewareRunable
+	AddRunable(runable middleware.MiddlewareRunable)
+	SetRunables(runables []middleware.MiddlewareRunable)
 }
 
 type TransactionBucketItemInterface interface {

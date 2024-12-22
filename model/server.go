@@ -1,6 +1,8 @@
 package model
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type ServerOption struct {
 	Header http.Header

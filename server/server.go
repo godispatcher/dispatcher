@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/denizakturk/dispatcher/constants"
 	"github.com/denizakturk/dispatcher/department"
+	"github.com/denizakturk/dispatcher/middleware"
 	"github.com/denizakturk/dispatcher/model"
 	"github.com/denizakturk/dispatcher/transaction"
 	"github.com/denizakturk/dispatcher/utilities"
@@ -13,7 +14,12 @@ import (
 )
 
 type Server[T any, TI transaction.Transaction[T]] struct {
-	Options model.ServerOption
+	Options  model.ServerOption
+	Runables []middleware.MiddlewareRunable
+}
+
+func (s *Server[T, TI]) AddRunable(runable middleware.MiddlewareRunable) {
+	s.Runables = append(s.Runables, runable)
 }
 
 func (Server[T, TI]) GetRequest() any {
@@ -29,16 +35,19 @@ func (s Server[T, TI]) GetOptions() model.ServerOption {
 	return s.Options
 }
 
-func (Server[T, TI]) Init(document model.Document) model.Document {
+func (s Server[T, TI]) Init(document model.Document) model.Document {
 	var ta TI = new(T)
+	if s.Runables != nil {
+		ta.SetRunables(s.Runables)
+	}
 	jsonByteData, err := json.Marshal(document.Form)
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
 		return outputErrDoc
 	}
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
 		return outputErrDoc
 	}
 	validator := model.DocumentFormValidater{Request: string(jsonByteData)}
@@ -47,6 +56,16 @@ func (Server[T, TI]) Init(document model.Document) model.Document {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
 		return outputErrDoc
 	}
+	if ta.GetRunables() != nil {
+		for _, runF := range ta.GetRunables() {
+			err := runF(document)
+			if err != nil {
+				outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+				return outputErrDoc
+			}
+		}
+	}
+
 	err = ta.Transact()
 	if err != nil {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err}
