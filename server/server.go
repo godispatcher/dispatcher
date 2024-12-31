@@ -40,6 +40,14 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	if s.Runables != nil {
 		ta.SetRunables(s.Runables)
 	}
+
+	err := ta.SetSelfRunables()
+
+	if err != nil {
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+		return outputErrDoc
+	}
+
 	jsonByteData, err := json.Marshal(document.Form)
 	if err != nil {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
@@ -64,12 +72,6 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 				return outputErrDoc
 			}
 		}
-	}
-
-	err = ta.Transact()
-	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err}
-		return outputErrDoc
 	}
 	ta.SetRequest(jsonByteData)
 	err = ta.Transact()

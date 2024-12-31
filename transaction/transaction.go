@@ -14,6 +14,7 @@ type Transaction[T any] interface {
 	GetRunables() []middleware.MiddlewareRunable
 	AddRunable(runable middleware.MiddlewareRunable)
 	SetRunables(runables []middleware.MiddlewareRunable)
+	SetSelfRunables() error
 }
 
 type TransactionBucketItemInterface interface {
