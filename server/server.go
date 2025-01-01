@@ -44,31 +44,31 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	err := ta.SetSelfRunables()
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
 
 	jsonByteData, err := json.Marshal(document.Form)
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
 	validator := model.DocumentFormValidater{Request: string(jsonByteData)}
 	err = validator.Validate(ta.GetRequest())
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
 	if ta.GetRunables() != nil {
 		for _, runF := range ta.GetRunables() {
 			err := runF(document)
 			if err != nil {
-				outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error()}
+				outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 				return outputErrDoc
 			}
 		}
@@ -76,10 +76,11 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	ta.SetRequest(jsonByteData)
 	err = ta.Transact()
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err, Type: "Error"}
 		return outputErrDoc
 	}
 	document.Output = ta.GetResponse()
+	document.Type = "Result"
 
 	return document
 }

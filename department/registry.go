@@ -68,7 +68,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 				if cta != nil {
 					dOutputDoc := (*cta).GetTransaction().Init(*v)
 					outputDoc.Dispatchings = append(outputDoc.Dispatchings, &dOutputDoc)
-					// if Ignored errors add dispatching ignoredError option params in model.document
+					//TODO: if Ignored errors add dispatching ignoredError option params in model.document
 					if dOutputDoc.Error != nil {
 						break
 					}
@@ -84,7 +84,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, string(response))
 		return
 	}
-	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found")}
+	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found"), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
@@ -96,7 +96,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func WriteErrorDoc(err error, w http.ResponseWriter) {
-	outputDoc := model.Document{Error: errors.New("transaction not found")}
+	outputDoc := model.Document{Error: errors.New("transaction not found"), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
