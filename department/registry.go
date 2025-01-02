@@ -84,7 +84,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, string(response))
 		return
 	}
-	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found"), Type: "Error"}
+	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found").Error(), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
@@ -96,7 +96,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func WriteErrorDoc(err error, w http.ResponseWriter) {
-	outputDoc := model.Document{Error: errors.New("transaction not found"), Type: "Error"}
+	outputDoc := model.Document{Error: errors.New("transaction not found").Error(), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
 	response, err := json.Marshal(outputDoc)
 	if err != nil {

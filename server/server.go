@@ -76,7 +76,7 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	ta.SetRequest(jsonByteData)
 	err = ta.Transact()
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err, Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
 	document.Output = ta.GetResponse()
