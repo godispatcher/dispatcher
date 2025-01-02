@@ -7,10 +7,10 @@ import (
 
 type Department struct {
 	Name         string
-	Transactions []transaction.TransactionBucketItemInterface
+	Transactions []*transaction.TransactionBucketItemInterface
 }
 
-type DispacherBucket []Department
+type DispacherBucket []*Department
 
 func (db *DispacherBucket) Add(name string, transaction transaction.TransactionBucketItemInterface) {
 	hasDepartment := false
@@ -18,18 +18,13 @@ func (db *DispacherBucket) Add(name string, transaction transaction.TransactionB
 	for _, val := range *db {
 		if val.Name == name {
 			hasDepartment = true
-			for _, v := range val.Transactions {
-				for v.GetName() == transaction.GetName() {
-					hasTransaction = true
-					val.Transactions = append(val.Transactions, transaction)
-				}
-			}
+			val.Transactions = append(val.Transactions, &transaction)
 		}
 	}
 	if !hasDepartment && !hasTransaction {
-		tmpDep := Department{}
+		tmpDep := &Department{}
 		tmpDep.Name = name
-		tmpDep.Transactions = append(tmpDep.Transactions, transaction)
+		tmpDep.Transactions = append(tmpDep.Transactions, &transaction)
 		*db = append(*db, tmpDep)
 	}
 }
@@ -38,8 +33,8 @@ func (db *DispacherBucket) GetTransaction(departmentName, transactionName string
 	for _, val := range *db {
 		if val.Name == departmentName {
 			for _, v := range val.Transactions {
-				for v.GetName() == transactionName {
-					return &v
+				for (*v).GetName() == transactionName {
+					return v
 				}
 			}
 		}

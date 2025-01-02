@@ -111,12 +111,12 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		for _, v := range val.Transactions {
 			transaction := TransactionListHelper{}
-			transaction.Name = v.GetName()
+			transaction.Name = (*v).GetName()
 			if !r.URL.Query().Has("short") || r.URL.Query().Get("short") == "0" {
 				nestedTypeCtrl = &[]string{}
-				transaction.Procudure = utilities.Analysis(v.GetTransaction().GetRequest(), nestedTypeCtrl)
+				transaction.Procudure = utilities.Analysis((*v).GetTransaction().GetRequest(), nestedTypeCtrl)
 				nestedTypeCtrl = &[]string{}
-				transaction.Output = utilities.Analysis(v.GetTransaction().GetResponse(), nestedTypeCtrl)
+				transaction.Output = utilities.Analysis((*v).GetTransaction().GetResponse(), nestedTypeCtrl)
 			}
 			department.Transactions = append(department.Transactions, transaction)
 		}
