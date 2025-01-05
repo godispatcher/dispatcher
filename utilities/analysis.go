@@ -22,7 +22,7 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 		methodVal := valueOf.MethodByName("MarshalJSON")
 		if methodVal.IsValid() {
 			byteData, _ := json.Marshal(variable)
-			output = strings.Trim(string(byteData), "\"")
+			output = strings.Trim(MarshalJSONAnalysis(byteData), "\"")
 			break
 		}
 		structVar := StructVariable{}
@@ -78,4 +78,27 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 		output = typeOf.Kind().String()
 	}
 	return output
+}
+
+func MarshalJSONAnalysis(byteData []byte) string {
+	var result interface{}
+	err := json.Unmarshal(byteData, &result)
+	if err != nil {
+		return "Invalid JSON"
+	}
+
+	switch result.(type) {
+	case string:
+		return "String"
+	case float64:
+		return "Number"
+	case bool:
+		return "Boolean"
+	case []interface{}:
+		return "Array"
+	case map[string]interface{}:
+		return "Object"
+	default:
+		return "Unknown"
+	}
 }
