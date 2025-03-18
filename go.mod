@@ -1,3 +1,3 @@
-module github.com/denizakturk/dispatcher
+module github.com/godispatcher/dispatcher
 
-go 1.23.4
+go 1.23

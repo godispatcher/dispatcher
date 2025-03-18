@@ -1,11 +1,11 @@
 package creator
 
 import (
-	"github.com/denizakturk/dispatcher/department"
-	"github.com/denizakturk/dispatcher/middleware"
-	"github.com/denizakturk/dispatcher/model"
-	"github.com/denizakturk/dispatcher/server"
-	"github.com/denizakturk/dispatcher/transaction"
+	"github.com/godispatcher/dispatcher/department"
+	"github.com/godispatcher/dispatcher/middleware"
+	"github.com/godispatcher/dispatcher/model"
+	"github.com/godispatcher/dispatcher/server"
+	"github.com/godispatcher/dispatcher/transaction"
 	"net/http"
 )
 

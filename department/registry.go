@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/denizakturk/dispatcher/model"
+	"github.com/godispatcher/dispatcher/model"
 	"io"
 	"net/http"
 	"strconv"

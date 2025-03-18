@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
-	"github.com/denizakturk/dispatcher/model"
+	"github.com/godispatcher/dispatcher/model"
 )
 
 type MiddlewareRunable func(document model.Document) error

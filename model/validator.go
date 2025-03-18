@@ -3,8 +3,8 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/denizakturk/dispatcher/constants"
-	"github.com/denizakturk/dispatcher/utilities"
+	"github.com/godispatcher/dispatcher/constants"
+	"github.com/godispatcher/dispatcher/utilities"
 	"reflect"
 )
 

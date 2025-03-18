@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"github.com/denizakturk/dispatcher/middleware"
-	"github.com/denizakturk/dispatcher/model"
+	"github.com/godispatcher/dispatcher/middleware"
+	"github.com/godispatcher/dispatcher/model"
 )
 
 type Transaction[T any] interface {

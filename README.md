@@ -12,7 +12,7 @@ src/department/example.go
 ```go
 package department
 
-import "github.com/denizakturk/dispatcher/middleware"
+import "github.com/godispatcher/dispatcher/middleware"
 
 type Example stryct {
     middleware.Middleware[struct{Name string `json:"name"`}, string]
@@ -30,7 +30,7 @@ src/department/register.go
 ```go
 package department
 
-import "github.com/denizakturk/dispatcher/middleware"
+import "github.com/godispatcher/dispatcher/middleware"
 
 func Register() {
     exampleDepartment := middleware.NewDepartmentManager()
@@ -51,9 +51,9 @@ main.go
 package main
 
 import (
-	"github.com/denizakturk/dispatcher/registrant"
-	"github.com/denizakturk/dispatcher/server"
-	"github.com/denizakturk/dispatcher/src/department"
+	"github.com/godispatcher/dispatcher/registrant"
+	"github.com/godispatcher/dispatcher/server"
+	"github.com/godispatcher/dispatcher/src/department"
 )
 
 func main() {
@@ -81,8 +81,8 @@ src/department/example.go
 package department
 
 import (
-	"github.com/denizakturk/dispatcher/middleware"
-	"github.com/denizakturk/dispatcher/model"
+	"github.com/godispatcher/dispatcher/middleware"
+	"github.com/godispatcher/dispatcher/model"
 )
 
 type LicenceCheckerMiddleware[Req, Res any] struct {

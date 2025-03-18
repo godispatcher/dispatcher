@@ -1,7 +1,7 @@
 package department
 
 import (
-	"github.com/denizakturk/dispatcher/transaction"
+	"github.com/godispatcher/dispatcher/transaction"
 	"net/http"
 )
 
