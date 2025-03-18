@@ -24,3 +24,5 @@ dispatcher
 main.go
 
 .idea/
+
+log.jsonl

@@ -1,8 +1,11 @@
 package department
 
 import (
+	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
+	"github.com/godispatcher/logger"
 	"net/http"
+	"time"
 )
 
 type Department struct {
@@ -50,10 +53,22 @@ func NewRegisteryDispatcher(port string) *RegisterDispatcher {
 }
 
 type RegisterDispatcher struct {
-	MainFunc func(http.ResponseWriter, *http.Request)
+	MainFunc func(http.ResponseWriter, *http.Request) model.RegisterResponseModel
 	Port     string
 }
 
 func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rd.MainFunc(w, r)
+	logger.InitLogFile("log.jsonl")
+	loggerRequest, _ := logger.NewLoggedRequest(r)
+	startTime := time.Now()
+	rw := rd.MainFunc(w, r)
+	duration := time.Since(startTime)
+	loggerResponse := logger.NewLoggedResponse(rw.StatusCode, rw.Header, rw.Body)
+	entry := logger.LogEntry{
+		Timestamp: time.Now(),
+		Request:   loggerRequest,
+		Response:  loggerResponse,
+		Duration:  duration,
+	}
+	logger.WriteLog(entry)
 }

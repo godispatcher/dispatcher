@@ -20,37 +20,37 @@ const (
 	ContentTypeHTML           = "text/html"
 )
 
-func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
+func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.RegisterResponseModel) {
 	var document model.Document
 	if r.Header.Get("Content-Type") == ContentTypeJSON {
 		docTmp, err := JsonHandler(r)
 		if err != nil {
-			WriteErrorDoc(err, w)
-			return
+			rw = WriteErrorDoc(err, w)
+			return rw
 		}
 		document = docTmp
 	} else if r.Header.Get("Content-Type") == ContentTypeFormURLEncoded {
 		docTmp, err := UrlEncodedHandler(r)
 		if err != nil {
-			WriteErrorDoc(err, w)
-			return
+			rw = WriteErrorDoc(err, w)
+			return rw
 		}
 		document = docTmp
 	} else if strings.HasPrefix(r.Header.Get("Content-Type"), ContentTypeMultipart) {
 		docTmp, err := MultipartFormHandler(r)
 		if err != nil {
-			WriteErrorDoc(errors.New("dad content type"), w)
-			return
+			rw = WriteErrorDoc(errors.New("dad content type"), w)
+			return rw
 		}
 		document = docTmp
 	} else {
-		WriteErrorDoc(errors.New("dad content type"), w)
-		return
+		rw = WriteErrorDoc(errors.New("dad content type"), w)
+		return rw
 	}
 
 	if &document == nil {
-		WriteErrorDoc(errors.New("dad content type"), w)
-		return
+		rw = WriteErrorDoc(errors.New("dad content type"), w)
+		return rw
 	}
 	ta := DispatcherHolder.GetTransaction(document.Department, document.Transaction)
 	if ta != nil {
@@ -58,8 +58,8 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 
 		response, err := json.Marshal(outputDoc)
 		if err != nil {
-			WriteErrorDoc(errors.New("dad content type"), w)
-			return
+			rw = WriteErrorDoc(errors.New("dad content type"), w)
+			return rw
 		}
 
 		if document.Dispatchings != nil {
@@ -81,29 +81,39 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set(key, options.Header.Get(key))
 			}
 		}
+		rw.Header = w.Header()
+		rw.Body = string(response)
 		fmt.Fprint(w, string(response))
-		return
+		return rw
 	}
 	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found").Error(), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
+	rw.StatusCode = http.StatusBadRequest
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return
+		rw.StatusCode = http.StatusBadRequest
+		return rw
 	}
+	rw.Body = string(response)
 	fmt.Fprint(w, string(response))
-	return
+	return rw
 }
 
-func WriteErrorDoc(err error, w http.ResponseWriter) {
+func WriteErrorDoc(err error, w http.ResponseWriter) (rw model.RegisterResponseModel) {
 	outputDoc := model.Document{Error: errors.New("transaction not found").Error(), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
+	rw.StatusCode = http.StatusBadRequest
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return
+		rw.StatusCode = http.StatusBadRequest
+		return rw
 	}
+	rw.Body = response
 	fmt.Fprint(w, string(response))
+
+	return rw
 }
 
 func JsonHandler(r *http.Request) (model.Document, error) {
