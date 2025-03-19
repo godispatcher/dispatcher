@@ -53,8 +53,9 @@ func NewRegisteryDispatcher(port string) *RegisterDispatcher {
 }
 
 type RegisterDispatcher struct {
-	MainFunc func(http.ResponseWriter, *http.Request) model.RegisterResponseModel
-	Port     string
+	MainFunc     func(http.ResponseWriter, *http.Request) model.RegisterResponseModel
+	Port         string
+	LoggerWriter func(log logger.LogEntry) error
 }
 
 func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -70,5 +71,10 @@ func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Response:  loggerResponse,
 		Duration:  duration,
 	}
-	logger.WriteLog(entry)
+	if rd.LoggerWriter != nil {
+		rd.LoggerWriter(entry)
+	} else {
+		logger.WriteLog(entry)
+	}
+
 }
