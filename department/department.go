@@ -1,6 +1,7 @@
 package department
 
 import (
+	"encoding/json"
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
 	"github.com/godispatcher/logger"
@@ -64,7 +65,21 @@ func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	rw := rd.MainFunc(w, r)
 	duration := time.Since(startTime)
-	loggerResponse := logger.NewLoggedResponse(rw.StatusCode, rw.Header, rw.Body)
+
+	var logBody interface{}
+	switch bodyValue := rw.Body.(type) {
+	case string:
+		var jsonCheck interface{}
+		if json.Unmarshal([]byte(bodyValue), &jsonCheck) == nil {
+			logBody = jsonCheck
+		} else {
+			logBody = bodyValue
+		}
+	default:
+		logBody = bodyValue
+	}
+
+	loggerResponse := logger.NewLoggedResponse(rw.StatusCode, rw.Header, logBody)
 	entry := logger.LogEntry{
 		Timestamp: time.Now(),
 		Request:   loggerRequest,
@@ -76,5 +91,4 @@ func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		logger.WriteLog(entry)
 	}
-
 }
