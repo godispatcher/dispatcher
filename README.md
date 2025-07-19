@@ -1,166 +1,348 @@
-# Dispatcher
+# GoDispatcher Framework
 
-İster küçük/orta ölçekli, ister büyük ölçekli bir hizmet tasarlıyor olun, bunların hepsini dağıtıcı mimarisiyle oluşturabilirsiniz.
+**GoDispatcher**, küçük ölçekli projelerden büyük ölçekli enterprise uygulamalara kadar her türlü HTTP servisini kolayca oluşturmanızı sağlayan, type-safe ve middleware tabanlı bir Go framework'üdür.
 
-Whether you are designing a small/medium-sized or large-scale service, you can create them all with a dispatcher architecture.
+**GoDispatcher** is a type-safe, middleware-based Go framework that enables you to easily create HTTP services from small-scale projects to large-scale enterprise applications.
 
-Tek bir function ile servisinizi sunmaya başlayın.
----
-**Start serving your service with just a single function.**
+## 🚀 Özellikler / Features
 
-src/department/example.go
+- **Type-Safe**: Go generics kullanarak compile-time type safety
+- **Middleware System**: Esnek ve genişletilebilir middleware desteği
+- **Department Architecture**: Servisleri mantıksal departmanlara ayırma
+- **Built-in Logging**: Otomatik request/response loglama
+- **API Documentation**: Otomatik API dokümantasyonu (/help endpoint)
+- **Security**: Built-in licence validation ve güvenlik özellikleri
+- **Request Chaining**: Zincirleme request desteği
+- **JSON API**: RESTful JSON API desteği
+
+## 📦 Kurulum / Installation
+
+```bash
+go mod init your-project
+go get github.com/godispatcher/dispatcher
+```
+
+## 🏗️ Temel Kullanım / Basic Usage
+
+### 1. Transaction Oluşturma / Creating a Transaction
+
 ```go
 package department
 
-import "github.com/godispatcher/dispatcher/middleware"
+import (
+    "github.com/godispatcher/dispatcher/src/middleware"
+)
 
-type Example stryct {
-    middleware.Middleware[struct{Name string `json:"name"`}, string]
+// Request ve Response tiplerini tanımlayın
+type HelloRequest struct {
+    Name string `json:"name"`
 }
 
-func (t Example) Transact()(interface{}, error){
-    return "Hello "+t.Response.Name
+type HelloResponse struct {
+    Message string `json:"message"`
+}
+
+// Transaction struct'ınızı oluşturun
+type HelloTransaction struct {
+    middleware.Middleware[HelloRequest, HelloResponse]
+}
+
+// SetSelfRunables middleware'leri ayarlamak için kullanılır
+func (t *HelloTransaction) SetSelfRunables() error {
+    // Burada kendi middleware'lerinizi ekleyebilirsiniz
+    return nil
+}
+
+// Transact ana iş mantığınızı içerir
+func (t *HelloTransaction) Transact() error {
+    t.Response.Message = "Hello, " + t.Request.Name + "!"
+    return nil
 }
 ```
-Oluşturduğumuz işlemi dispatcher hizmetine kayıt ediyoruz.
----
-**We register the operation we created with the dispatcher service.**
 
-src/department/register.go
+### 2. Transaction'ı Kaydetme / Registering Transaction
+
 ```go
 package department
 
-import "github.com/godispatcher/dispatcher/middleware"
+import "github.com/godispatcher/dispatcher/creator"
 
-func Register() {
-    exampleDepartment := middleware.NewDepartmentManager()
-    err := exampleDepartment.AddTransaction(middleware.NewTransactionInit("Example", "example", &Example{}))
-    if err != nil {
-        panic(err)
-    }
-    
-    exampleDepartment.Register()
+func RegisterHello() {
+    creator.NewTransaction[HelloTransaction, *HelloTransaction](
+        "Greeting",    // Department name
+        "hello",       // Transaction name
+        nil,           // Middleware runables (optional)
+        nil,           // Options (optional)
+    )
 }
 ```
-Son yapmamız gereken ana fonksiyona tanımlama yapmak
----
-**The last thing we need to do is define the main function.**
 
-main.go
+### 3. Ana Uygulama / Main Application
+
 ```go
 package main
 
 import (
-	"github.com/godispatcher/dispatcher/registrant"
-	"github.com/godispatcher/dispatcher/server"
-	"github.com/godispatcher/dispatcher/src/department"
+    "github.com/godispatcher/dispatcher/department"
+    "github.com/godispatcher/dispatcher/server"
+    "your-project/department" // Your department package
 )
 
 func main() {
-	dispatcher := registrant.NewRegisterDispatch()
-	dispatcher.Port = "9001" // Default 9000 optinal
-	department.Register()
-	server.InitServer(dispatcher)
+    // Dispatcher'ı başlat
+    service := department.NewRegisteryDispatcher("8080")
+
+    // Department'ları kaydet
+    department.RegisterHello()
+
+    // API dokümantasyonunu aktifleştir
+    server.ServJsonApiDoc()
+
+    // Serveri başlat
+    server.ServJsonApi(service)
 }
 ```
 
-Port tanımlaması opsiyonel olup öntanımlı 9000 dir.
+## 🔧 Gelişmiş Kullanım / Advanced Usage
 
-Bunları bilmelisiniz
-===
-**You should know these**
+### Custom Middleware Oluşturma / Creating Custom Middleware
 
-Güvenlik için yapacağınız jwt ve benzeri token kontrollerini veya ihtiyacınız olan yapıları kendi oluşturacağınız middleware'a dispatcher'ın sunduğu basit middelware'ı embed ederek kullanabilir veya middleware.MiddlewareInterface yardımıyla baştan kendi middleware'ınızı oluşturabilir siniz.
-
-Esnekliği nasıl sağlayacağınıza dair örnek bir uygulama yapalım
-----
-**Let's create an example application for how to provide flexibility**
-
-src/department/example.go
 ```go
 package department
 
 import (
-	"github.com/godispatcher/dispatcher/middleware"
-	"github.com/godispatcher/dispatcher/model"
+    "errors"
+    "github.com/godispatcher/dispatcher/middleware"
+    "github.com/godispatcher/dispatcher/model"
 )
 
-type LicenceCheckerMiddleware[Req, Res any] struct {
-	middleware.Middleware[Req, Res]
-	Token string
+// Custom middleware struct'ı
+type AuthMiddleware[Req, Res any] struct {
+    middleware.Middleware[Req, Res]
+    Token string
+    UserID string
 }
 
-func (m *LicenceCheckerMiddleware[Req, Res]) SetToken(token string) {
-	m.Token = token
-}
-func (m LicenceCheckerMiddleware[Req, Res]) LicenceChecker(licence string) bool {
-	return true
+// Token doğrulama middleware'i
+func (m *AuthMiddleware[Req, Res]) ValidateToken(document model.Document) error {
+    if document.Security == nil || document.Security.Licence == "" {
+        return errors.New("token required")
+    }
+
+    // Token doğrulama mantığınız
+    if !m.isValidToken(document.Security.Licence) {
+        return errors.New("invalid token")
+    }
+
+    m.Token = document.Security.Licence
+    m.UserID = m.extractUserID(document.Security.Licence)
+    return nil
 }
 
-func (m *LicenceCheckerMiddleware[Req, Res]) InitTransaction(document model.Document) (err error) {
-	err = m.Middleware.InitTransaction(document)
-	if err != nil {
-		return err
-	}
-	m.SetToken(document.Security.Licence)
-	return err
+func (m *AuthMiddleware[Req, Res]) isValidToken(token string) bool {
+    // Token doğrulama mantığınız
+    return token != ""
 }
 
-type Request struct {
-	Name string `json:"name"`
+func (m *AuthMiddleware[Req, Res]) extractUserID(token string) string {
+    // Token'dan user ID çıkarma mantığınız
+    return "user123"
 }
 
-type Response struct {
-	Name  string `json:"name"`
-	Token string `json:"token"`
+// SetSelfRunables ile middleware'i aktifleştir
+func (m *AuthMiddleware[Req, Res]) SetSelfRunables() error {
+    m.AddRunable(m.ValidateToken)
+    return nil
 }
 
-type Example struct {
-	LicenceCheckerMiddleware[Request, Response]
+// Auth gerektiren transaction
+type SecureTransaction struct {
+    AuthMiddleware[SecureRequest, SecureResponse]
 }
 
-func (t Example) Transact() (interface{}, error) {
-	t.Response.Name = "Hello " + t.Request.Name
-	t.Response.Token = t.Token
-	return t.Response, nil
+type SecureRequest struct {
+    Data string `json:"data"`
 }
 
+type SecureResponse struct {
+    Result string `json:"result"`
+    UserID string `json:"user_id"`
+}
+
+func (t *SecureTransaction) Transact() error {
+    t.Response.Result = "Processed: " + t.Request.Data
+    t.Response.UserID = t.UserID // Middleware'den gelen user ID
+    return nil
+}
 ```
-Dispatcher'a register ettiğiniz hizmetleri girdi/çıktı parametrelerini görmek için
----
-Bir nevi dökümantasyon
 
-Projeyi 9000 portunda local'inizde çalıştırdığınızı varsayıyoruz
+### Request Chaining / Zincirleme İstekler
 
-    http://localhost:9000/help
-adresine yapacağınız istekde size tüm department/transaction listesini verecektir, 
-ayrıca kısa versiyonunu görmek için
-
-    http://localhost:9000/help?short=1
-
-İstemcilerden servisi nasıl çağırabiliriz?
----
-How to call dispatcher service from a clinet?
-```json
+```go
+// Ana request
 {
-    "department":"Example",
-    "transaction":"example",
-    "form":{
-      "name":"Deniz",
+    "department": "UserService",
+    "transaction": "create-user",
+    "form": {
+        "name": "John Doe",
+        "email": "john@example.com"
     },
-    "chain_request_option":{
-      "message":"name"
+    "chain_request_option": {
+        "user_id": "id"
     },
-    "dispatchings": [{
-        "department":"Messages", 
-        "transaction":"send-message"
-    }],
-    "security":{
-      "licence":"LICENCE_STRING"
+    "dispatchings": [
+        {
+            "department": "EmailService",
+            "transaction": "send-welcome-email"
+        },
+        {
+            "department": "LogService",
+            "transaction": "log-user-creation"
+        }
+    ],
+    "security": {
+        "licence": "your-jwt-token"
     }
 }
-
 ```
 
-Herhangi bir istemciden servise erişmek için json isteği göndermelisiniz, bunun için isteğin başlık kısmında Content-Type: Application/json bilgisi yer almalıdır.
-Örnekte olduğu gibi bir json gönderdiğinizde servise erişmiş ve cevap alıyor olacaksınız.
+## 📚 API Dokümantasyonu / API Documentation
+
+Framework otomatik olarak API dokümantasyonu sağlar:
+
+- **Full Documentation**: `GET /help`
+- **Short Documentation**: `GET /help?short=1`
+
+## 🔒 Güvenlik / Security
+
+### Licence Validation
+
+```go
+type SecureTransaction struct {
+    middleware.Middleware[Request, Response]
+}
+
+func (t *SecureTransaction) SetSelfRunables() error {
+    t.AddRunable(func(document model.Document) error {
+        if document.Security == nil {
+            return errors.New("security required")
+        }
+
+        if !isValidLicence(document.Security.Licence) {
+            return errors.New("invalid licence")
+        }
+
+        return nil
+    })
+    return nil
+}
+```
+
+## 📝 İstemci İsteği Formatı / Client Request Format
+
+```json
+{
+    "department": "DepartmentName",
+    "transaction": "transaction-name",
+    "form": {
+        "field1": "value1",
+        "field2": "value2"
+    },
+    "security": {
+        "licence": "your-token-here"
+    },
+    "options": {
+        "security": {
+            "licence_checker": true
+        }
+    }
+}
+```
+
+## 🔍 Response Formatı / Response Format
+
+### Başarılı Response / Success Response
+```json
+{
+    "department": "DepartmentName",
+    "transaction": "transaction-name",
+    "type": "Result",
+    "output": {
+        "result": "success data"
+    }
+}
+```
+
+### Hata Response / Error Response
+```json
+{
+    "department": "DepartmentName",
+    "transaction": "transaction-name",
+    "type": "Error",
+    "error": "error message"
+}
+```
+
+## 📊 Logging
+
+Framework otomatik olarak tüm request/response'ları loglar:
+
+```json
+{
+    "timestamp": "2024-01-01T12:00:00Z",
+    "request": {
+        "method": "POST",
+        "url": "/",
+        "headers": {...},
+        "body": {...}
+    },
+    "response": {
+        "status_code": 200,
+        "headers": {...},
+        "body": {...}
+    },
+    "duration": "15ms"
+}
+```
+
+## 🏗️ Proje Yapısı / Project Structure
+
+```
+your-project/
+├── main.go
+├── department/
+│   ├── user/
+│   │   ├── user.go
+│   │   └── register.go
+│   ├── product/
+│   │   ├── product.go
+│   │   └── register.go
+│   └── auth/
+│       ├── auth.go
+│       └── register.go
+├── middleware/
+│   └── custom.go
+└── model/
+    └── types.go
+```
+
+## 🤝 Katkıda Bulunma / Contributing
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 Lisans / License
+
+Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+
+## 🆘 Destek / Support
+
+- GitHub Issues: [Create an issue](https://github.com/godispatcher/dispatcher/issues)
+- Documentation: [Wiki](https://github.com/godispatcher/dispatcher/wiki)
+
+---
+
+**GoDispatcher** ile hızlı, güvenli ve ölçeklenebilir HTTP servisleri oluşturun! 🚀
