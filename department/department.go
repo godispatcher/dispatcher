@@ -2,11 +2,12 @@ package department
 
 import (
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
 	"github.com/godispatcher/logger"
-	"net/http"
-	"time"
 )
 
 type Department struct {
@@ -57,6 +58,7 @@ type RegisterDispatcher struct {
 	MainFunc     func(http.ResponseWriter, *http.Request) model.RegisterResponseModel
 	Port         string
 	LoggerWriter func(log logger.LogEntry) error
+	CORS         *model.CORSOptions
 }
 
 func (rd RegisterDispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {

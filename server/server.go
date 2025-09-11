@@ -3,14 +3,17 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/godispatcher/dispatcher/constants"
 	"github.com/godispatcher/dispatcher/department"
 	"github.com/godispatcher/dispatcher/middleware"
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
 	"github.com/godispatcher/dispatcher/utilities"
-	"log"
-	"net/http"
 )
 
 type Server[T any, TI transaction.Transaction[T]] struct {
@@ -131,7 +134,102 @@ func ServJsonApiDoc() {
 	http.Handle("/help", ApiDocServer{})
 }
 
+// ServJsonApi starts the HTTP server and applies CORS/same-origin controls if configured
 func ServJsonApi(register *department.RegisterDispatcher) {
-	http.Handle("/", register)
+	var handler http.Handler = register
+	if register != nil && register.CORS != nil {
+		handler = withCORS(handler, register.CORS)
+	} else {
+		// apply sensible defaults (permissive CORS) to allow external control later
+		defaults := (&model.CORSOptions{}).WithDefaults()
+		handler = withCORS(handler, defaults)
+	}
+	http.Handle("/", handler)
 	log.Fatal(http.ListenAndServe(":"+register.Port, nil))
+}
+
+// withCORS wraps the given handler with CORS and optional same-origin enforcement
+func withCORS(next http.Handler, opts *model.CORSOptions) http.Handler {
+	options := opts.WithDefaults()
+	allowedMethods := strings.Join(options.AllowedMethods, ", ")
+	allowedHeaders := strings.Join(options.AllowedHeaders, ", ")
+	exposeHeaders := strings.Join(options.ExposeHeaders, ", ")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if options.EnforceSameOrigin && origin != "" {
+			if !sameOrigin(origin, r.Host) {
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = w.Write([]byte("forbidden: same-origin policy enforced"))
+				return
+			}
+		}
+
+		// Preflight handling
+		if r.Method == http.MethodOptions {
+			applyCORSHeaders(w, origin, options, allowedMethods, allowedHeaders, exposeHeaders, r.Header.Get("Access-Control-Request-Headers"))
+			// 204 No Content for preflight
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		applyCORSHeaders(w, origin, options, allowedMethods, allowedHeaders, exposeHeaders, r.Header.Get("Access-Control-Request-Headers"))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func applyCORSHeaders(w http.ResponseWriter, origin string, options *model.CORSOptions, allowedMethods, allowedHeaders, exposeHeaders, reqHeaders string) {
+	w.Header().Add("Vary", "Origin")
+	if origin != "" {
+		if originAllowed(origin, options.AllowedOrigins) {
+			if options.AllowCredentials {
+				// When credentials are allowed, must echo specific origin instead of '*'
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			} else {
+				// Allow all or specific
+				if oneStar(options.AllowedOrigins) {
+					w.Header().Set("Access-Control-Allow-Origin", "*")
+				} else {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+				}
+			}
+		}
+		if exposeHeaders != "" {
+			w.Header().Set("Access-Control-Expose-Headers", exposeHeaders)
+		}
+		w.Header().Set("Access-Control-Allow-Methods", allowedMethods)
+		if reqHeaders != "" {
+			w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+		} else if allowedHeaders != "" {
+			w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+		}
+		if options.MaxAge > 0 {
+			w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", options.MaxAge))
+		}
+	}
+}
+
+func oneStar(allowed []string) bool {
+	return len(allowed) == 1 && allowed[0] == "*"
+}
+
+func originAllowed(origin string, allowed []string) bool {
+	if oneStar(allowed) {
+		return true
+	}
+	for _, a := range allowed {
+		if strings.EqualFold(a, origin) {
+			return true
+		}
+	}
+	return false
+}
+
+func sameOrigin(origin, host string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	// Compare host:port; scheme is generally irrelevant for same-origin in simple check
+	return strings.EqualFold(u.Host, host)
 }
