@@ -346,3 +346,18 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 ---
 
 **GoDispatcher** ile hızlı, güvenli ve ölçeklenebilir HTTP servisleri oluşturun! 🚀
+
+## 🔊 Persistent Stream API (TCP/NDJSON)
+
+HTTP bağlantı kurulum gecikmesini azaltmak için WebSocket benzeri kalıcı bir bağlantı olarak TCP tabanlı Stream API eklendi.
+
+- Protokol: NDJSON (satır sonu ile ayrılmış JSON)
+- Port: HTTP portunun +1'i (ör: HTTP 9000 ise Stream 9001)
+- Her satır bir `model.Document` isteği ve tek satır JSON cevap.
+
+Hızlı deneme (netcat):
+
+```bash
+nc localhost 9001
+{"department":"product","transaction":"get","form":{"id":123}}
+```
