@@ -359,5 +359,5 @@ Hızlı deneme (netcat):
 
 ```bash
 nc localhost 9001
-{"department":"product","transaction":"get","form":{"id":123}}
+{"department":"Product","transaction":"getA","form":{}}
 ```
