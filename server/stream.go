@@ -19,7 +19,7 @@ import (
 // Responses mirror HTTP behavior and contain a model.Document with either output or error.
 func ServStreamApi(register *department.RegisterDispatcher) {
 	// Derive stream port by incrementing HTTP port by 1 (e.g., 9000 -> 9001)
-	port := deriveStreamPort(register.Port)
+	port := deriveStreamPort(register.StreamPort)
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Printf("stream api listen error on port %s: %v", port, err)
