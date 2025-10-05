@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/godispatcher/dispatcher/department"
@@ -43,11 +42,7 @@ func deriveStreamPort(httpPort string) string {
 	if httpPort == "" {
 		return "9001"
 	}
-	if n, err := strconv.Atoi(httpPort); err == nil {
-		return strconv.Itoa(n + 1)
-	}
-	// if not numeric, append suffix
-	return strings.TrimSpace(httpPort) + "-stream"
+	return httpPort
 }
 
 func handleStreamConn(conn net.Conn) {
