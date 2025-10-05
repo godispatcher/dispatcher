@@ -58,6 +58,7 @@ type RegisterDispatcher struct {
 	MainFunc     func(http.ResponseWriter, *http.Request) model.RegisterResponseModel
 	Port         string
 	StreamPort   string
+	GRPCPort     string
 	LoggerWriter func(log logger.LogEntry) error
 	CORS         *model.CORSOptions
 }
