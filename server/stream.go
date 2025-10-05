@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/godispatcher/dispatcher/department"
@@ -20,7 +19,7 @@ import (
 // Responses mirror HTTP behavior and contain a model.Document with either output or error.
 func ServStreamApi(register *department.RegisterDispatcher) {
 	// Derive stream port by incrementing HTTP port by 1 (e.g., 9000 -> 9001)
-	port := deriveStreamPort(register.Port)
+	port := deriveStreamPort(register.StreamPort)
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Printf("stream api listen error on port %s: %v", port, err)
@@ -43,11 +42,7 @@ func deriveStreamPort(httpPort string) string {
 	if httpPort == "" {
 		return "9001"
 	}
-	if n, err := strconv.Atoi(httpPort); err == nil {
-		return strconv.Itoa(n + 1)
-	}
-	// if not numeric, append suffix
-	return strings.TrimSpace(httpPort) + "-stream"
+	return httpPort
 }
 
 func handleStreamConn(conn net.Conn) {
