@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -73,10 +72,7 @@ func deriveStreamPortLocal(httpPort string) string {
 	if httpPort == "" {
 		return "9001"
 	}
-	if n, err := strconv.Atoi(httpPort); err == nil {
-		return strconv.Itoa(n + 1)
-	}
-	return strings.TrimSpace(httpPort) + "-stream"
+	return httpPort
 }
 
 // Send writes a single line JSON document and reads a single line JSON response.
