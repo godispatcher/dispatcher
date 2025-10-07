@@ -31,5 +31,6 @@ type Document struct {
 }
 
 type Security struct {
-	Licence string `json:"licence,omitempty"`
+	Licence    string `json:"licence,omitempty"`
+	VerifyCode string `json:"verify_code,omitempty"`
 }
