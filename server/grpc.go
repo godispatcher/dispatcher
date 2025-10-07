@@ -22,6 +22,10 @@ func (jsonCodec) Name() string                               { return "json" }
 func (jsonCodec) Marshal(v interface{}) ([]byte, error)      { return json.Marshal(v) }
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error { return json.Unmarshal(data, v) }
 
+// Define an empty interface for HandlerType to satisfy gRPC's requirement of an interface type
+// and to avoid reflect panics. Any service implementation will satisfy this.
+type dispatcherGrpcAPI interface{}
+
 // Register and start a gRPC server that mirrors the Stream API behavior.
 func ServGrpcApi(register *department.RegisterDispatcher) {
 	// Ensure our JSON codec is available and forced so clients don't need to specify it explicitly
@@ -41,7 +45,7 @@ func ServGrpcApi(register *department.RegisterDispatcher) {
 	service := &dispatcherGrpcService{}
 	grpcServer.RegisterService(&grpc.ServiceDesc{
 		ServiceName: "dispatcher.Dispatcher",
-		HandlerType: (*dispatcherGrpcService)(nil),
+		HandlerType: (*dispatcherGrpcAPI)(nil),
 		Methods: []grpc.MethodDesc{
 			{
 				MethodName: "Execute",
