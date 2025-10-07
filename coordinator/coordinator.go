@@ -30,7 +30,7 @@ type ServiceRequest[T any, R any] struct {
 
 // CallTransaction sends the typed request T and returns a typed response R.
 // Internally it fills Document.Form from T, calls the HTTP client and decodes Output into R.
-func CallTransaction[T any, R any](req ServiceRequest[T, R]) (R, error) {
+func (req ServiceRequest[T, R]) CallTransaction() (R, error) {
 	var zero R
 	// Build form from typed request into the provided document
 	form := model.DocumentForm{}
@@ -38,7 +38,6 @@ func CallTransaction[T any, R any](req ServiceRequest[T, R]) (R, error) {
 		return zero, err
 	}
 	req.Document.Form = form
-
 	resDoc, err := server.CallHTTP(req.Address, req.Document)
 	if err != nil {
 		return zero, err

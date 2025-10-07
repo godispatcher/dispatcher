@@ -22,21 +22,22 @@ const (
 
 func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.RegisterResponseModel) {
 	var document model.Document
-	if r.Header.Get("Content-Type") == ContentTypeJSON {
+	ct := r.Header.Get("Content-Type")
+	if strings.HasPrefix(ct, ContentTypeJSON) {
 		docTmp, err := JsonHandler(r)
 		if err != nil {
 			rw = WriteErrorDoc(err, w)
 			return rw
 		}
 		document = docTmp
-	} else if r.Header.Get("Content-Type") == ContentTypeFormURLEncoded {
+	} else if strings.HasPrefix(ct, ContentTypeFormURLEncoded) {
 		docTmp, err := UrlEncodedHandler(r)
 		if err != nil {
 			rw = WriteErrorDoc(err, w)
 			return rw
 		}
 		document = docTmp
-	} else if strings.HasPrefix(r.Header.Get("Content-Type"), ContentTypeMultipart) {
+	} else if strings.HasPrefix(ct, ContentTypeMultipart) {
 		docTmp, err := MultipartFormHandler(r)
 		if err != nil {
 			rw = WriteErrorDoc(errors.New("dad content type"), w)

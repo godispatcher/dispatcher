@@ -3,8 +3,11 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/godispatcher/dispatcher/model"
@@ -19,13 +22,43 @@ func CallHTTP(address string, doc model.Document) (model.Document, error) {
 	if err != nil {
 		return out, err
 	}
+	// Normalize URL: ensure it has a trailing slash if no path is provided
+	u, err := url.Parse(address)
+	if err == nil {
+		if u.Path == "" {
+			u.Path = "/"
+			address = u.String()
+		}
+	}
 	client := &http.Client{Timeout: 15 * time.Second}
-	req, err := http.NewRequest(http.MethodPost, address, bytes.NewReader(b))
+	mkReq := func(closeConn bool) (*http.Request, error) {
+		req, err := http.NewRequest(http.MethodPost, address, bytes.NewReader(b))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		if closeConn {
+			req.Header.Set("Connection", "close")
+		}
+		return req, nil
+	}
+	// First attempt
+	req, err := mkReq(false)
 	if err != nil {
 		return out, err
 	}
-	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
+	if err != nil {
+		// Retry once on EOF or connection closed errors, forcing Connection: close
+		if errors.Is(err, io.EOF) || strings.Contains(err.Error(), "EOF") || strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+			req2, err2 := mkReq(true)
+			if err2 != nil {
+				return out, err
+			}
+			resp, err = client.Do(req2)
+		}
+	}
 	if err != nil {
 		return out, err
 	}
