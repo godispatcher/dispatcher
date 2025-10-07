@@ -38,6 +38,15 @@ func (req ServiceRequest[T, R]) CallTransaction() (R, error) {
 		return zero, err
 	}
 	req.Document.Form = form
+	// Ensure verify code is propagated to the outgoing request document
+	if (req.Document.Security == nil) || (req.Document.Security.VerifyCode == "") {
+		if vc := model.GetCurrentVerifyCode(); vc != "" {
+			if req.Document.Security == nil {
+				req.Document.Security = &model.Security{}
+			}
+			req.Document.Security.VerifyCode = vc
+		}
+	}
 	resDoc, err := server.CallHTTP(req.Address, req.Document)
 	if err != nil {
 		return zero, err

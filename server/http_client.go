@@ -38,6 +38,10 @@ func CallHTTP(address string, doc model.Document) (model.Document, error) {
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
+		// Propagate verify code if present in the document security
+		if doc.Security != nil && strings.TrimSpace(doc.Security.VerifyCode) != "" {
+			req.Header.Set("X-Verify-Code", doc.Security.VerifyCode)
+		}
 		if closeConn {
 			req.Header.Set("Connection", "close")
 		}

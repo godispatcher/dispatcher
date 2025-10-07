@@ -39,6 +39,11 @@ func (s Server[T, TI]) GetOptions() model.ServerOption {
 }
 
 func (s Server[T, TI]) Init(document model.Document) model.Document {
+	// Store verify code in a goroutine-local context for downstream calls
+	if document.Security != nil && strings.TrimSpace(document.Security.VerifyCode) != "" {
+		model.SetCurrentVerifyCode(document.Security.VerifyCode)
+		defer model.ClearCurrentVerifyCode()
+	}
 	var ta TI = new(T)
 	if s.Runables != nil {
 		ta.SetRunables(s.Runables)
