@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -14,15 +13,14 @@ import (
 // CallHTTP sends the given model.Document to a remote ServJsonApi endpoint
 // hosted at http://host:port/ and returns the response document.
 // It uses application/json for both request and response bodies.
-func CallHTTP(host string, doc model.Document) (model.Document, error) {
+func CallHTTP(address string, doc model.Document) (model.Document, error) {
 	var out model.Document
-	u := fmt.Sprintf("http://%s/", host)
 	b, err := json.Marshal(doc)
 	if err != nil {
 		return out, err
 	}
 	client := &http.Client{Timeout: 15 * time.Second}
-	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(b))
+	req, err := http.NewRequest(http.MethodPost, address, bytes.NewReader(b))
 	if err != nil {
 		return out, err
 	}
