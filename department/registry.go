@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/godispatcher/dispatcher/model"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/godispatcher/dispatcher/model"
 )
 
 const (
@@ -52,6 +53,15 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 	if &document == nil {
 		rw = WriteErrorDoc(errors.New("dad content type"), w)
 		return rw
+	}
+	// If document.Security.VerifyCode is empty, try to obtain it from X-Verify-Code header
+	if document.Security == nil || strings.TrimSpace(document.Security.VerifyCode) == "" {
+		if vcode := strings.TrimSpace(r.Header.Get("X-Verify-Code")); vcode != "" {
+			if document.Security == nil {
+				document.Security = &model.Security{}
+			}
+			document.Security.VerifyCode = vcode
+		}
 	}
 	ta := DispatcherHolder.GetTransaction(document.Department, document.Transaction)
 	if ta != nil {
