@@ -22,6 +22,38 @@ go mod init your-project
 go get github.com/godispatcher/dispatcher
 ```
 
+## ⚡ Hızlı Başlangıç / Quick Start
+
+1) Depoyu klonlayın ve bağımlılıkları alın:
+
+```bash
+git clone https://github.com/godispatcher/dispatcher.git
+cd dispatcher
+go mod download
+```
+
+2) Örnek servisi çalıştırın:
+
+```bash
+go run .
+```
+
+- HTTP: http://localhost:9000
+- API Dokümantasyonu: http://localhost:9000/help (kısa: /help?short=1)
+- Stream (TCP/NDJSON): 9001 (HTTP portu + 1)
+
+3) Hızlı test (curl):
+
+```bash
+curl -s http://localhost:9000/ \
+  -H 'Content-Type: application/json' \
+  -d '{"department":"Product","transaction":"getA","form":{}}'
+```
+
+Daha fazla bilgi ve örnekler:
+- Ayrıntılı Kılavuz (TR): docs/guide-tr.md
+- Advanced (EN): docs/advanced.md
+
 ## 🏗️ Temel Kullanım / Basic Usage
 
 ### 1. Transaction Oluşturma / Creating a Transaction
