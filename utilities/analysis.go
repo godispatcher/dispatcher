@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"encoding"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -8,6 +9,41 @@ import (
 
 type StructVariable map[string]interface{}
 type SliceVariable []interface{}
+
+// hasCustomJSONMarshaling reports whether the type or its pointer implements
+// json.Marshaler or encoding.TextMarshaler (or explicitly defines MarshalJSON).
+// This helps us classify types like UUID as primitive JSON types (e.g., String)
+// instead of falling back to their underlying Go kind (e.g., array/slice of bytes).
+func hasCustomJSONMarshaling(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	jsonMarshaler := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	textMarshaler := reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+
+	// Check the type itself and also its pointer form to catch pointer receiver methods.
+	if t.Implements(jsonMarshaler) || t.Implements(textMarshaler) {
+		return true
+	}
+	if t.Kind() != reflect.Ptr {
+		pt := reflect.PointerTo(t)
+		if pt.Implements(jsonMarshaler) || pt.Implements(textMarshaler) {
+			return true
+		}
+	}
+
+	// Fallback explicit method presence check for MarshalJSON by name.
+	if _, ok := t.MethodByName("MarshalJSON"); ok {
+		return true
+	}
+	if t.Kind() != reflect.Ptr {
+		pt := reflect.PointerTo(t)
+		if _, ok := pt.MethodByName("MarshalJSON"); ok {
+			return true
+		}
+	}
+	return false
+}
 
 func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 
@@ -17,14 +53,16 @@ func Analysis(variable interface{}, nestedTypes *[]string) interface{} {
 	if typeOf == nil {
 		return "any"
 	}
+
+	// If the type has custom (JSON/Text) marshaling, prefer analyzing its marshaled JSON shape.
+	if hasCustomJSONMarshaling(typeOf) {
+		byteData, _ := json.Marshal(variable)
+		output = strings.Trim(MarshalJSONAnalysis(byteData), "\"")
+		return output
+	}
+
 	switch typeOf.Kind() {
 	case reflect.Struct:
-		methodVal := valueOf.MethodByName("MarshalJSON")
-		if methodVal.IsValid() {
-			byteData, _ := json.Marshal(variable)
-			output = strings.Trim(MarshalJSONAnalysis(byteData), "\"")
-			break
-		}
 		structVar := StructVariable{}
 		(*nestedTypes) = append(*nestedTypes, typeOf.Name())
 	NEXTLOOP:
