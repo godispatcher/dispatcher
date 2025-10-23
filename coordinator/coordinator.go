@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/godispatcher/dispatcher/department"
 	"github.com/godispatcher/dispatcher/model"
@@ -26,11 +27,12 @@ type ServiceRequest[T any, R any] struct {
 	Address  string
 	Document model.Document
 	Request  T
+	Response model.Document
 }
 
 // CallTransaction sends the typed request T and returns a typed response R.
 // Internally it fills Document.Form from T, calls the HTTP client and decodes Output into R.
-func (req ServiceRequest[T, R]) CallTransaction() (R, error) {
+func (req *ServiceRequest[T, R]) CallTransaction() (R, error) {
 	var zero R
 	// Build form from typed request into the provided document
 	form := model.DocumentForm{}
@@ -48,8 +50,12 @@ func (req ServiceRequest[T, R]) CallTransaction() (R, error) {
 		}
 	}
 	resDoc, err := server.CallHTTP(req.Address, req.Document)
+	req.Response = resDoc
 	if err != nil {
 		return zero, err
+	}
+	if resDoc.Type == "error" {
+		return zero, errors.New(resDoc.Error.(string))
 	}
 	// Decode Output into typed response
 	b, err := json.Marshal(resDoc.Output)
