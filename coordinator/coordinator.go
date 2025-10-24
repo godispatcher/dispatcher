@@ -54,7 +54,7 @@ func (req *ServiceRequest[T, R]) CallTransaction() (R, error) {
 	if err != nil {
 		return zero, err
 	}
-	if resDoc.Type == "error" {
+	if resDoc.Type == "Error" {
 		return zero, errors.New(resDoc.Error.(string))
 	}
 	// Decode Output into typed response
