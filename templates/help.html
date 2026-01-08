@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoDispatcher API Help</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #dee2e6; padding-bottom: 20px; position: sticky; top: 0; background: #f8f9fa; z-index: 100; }
+        h1 { margin: 0; color: #007bff; }
+        .search-container { flex-grow: 1; max-width: 400px; }
+        #search-input { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px; }
+        .department { margin-bottom: 20px; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .department-header { background: #e9ecef; padding: 10px 20px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid #dee2e6; color: #495057; }
+        .transaction { border-bottom: 1px solid #f1f1f1; }
+        .transaction:last-child { border-bottom: none; }
+        .accordion-btn { width: 100%; text-align: left; padding: 15px 20px; background: none; border: none; outline: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .accordion-btn:hover { background-color: #f1f3f5; }
+        .accordion-btn.active { background-color: #e7f1ff; }
+        .transaction-name { font-weight: 600; font-family: monospace; color: #d63384; }
+        .accordion-icon::after { content: '\002B'; font-weight: bold; }
+        .active .accordion-icon::after { content: "\2212"; }
+        .panel { padding: 0 20px; background-color: white; display: none; overflow: hidden; border-top: 1px solid #f1f1f1; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #e9ecef; font-size: 13px; }
+        .detail-title { font-weight: bold; margin-bottom: 10px; color: #6c757d; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        .no-results { display: none; text-align: center; padding: 40px; font-size: 1.2em; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GoDispatcher API Doc</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Transaction veya departman ara..." onkeyup="filterContent()">
+        </div>
+    </header>
+
+    <div id="content">
+        {{range .Departments}}
+        <div class="department">
+            <div class="department-header">{{.Name}}</div>
+            {{range .Transactions}}
+            <div class="transaction">
+                <button class="accordion-btn">
+                    <span class="transaction-name">{{.Name}}</span>
+                    <span class="accordion-icon"></span>
+                </button>
+                <div class="panel">
+                    <div class="details-grid">
+                        <div>
+                            <div class="detail-title">Giriş Yapısı (Request)</div>
+                            <pre>{{.Procudure | json}}</pre>
+                        </div>
+                        <div>
+                            <div class="detail-title">Çıkış Yapısı (Response)</div>
+                            <pre>{{.Output | json}}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <div id="no-results" class="no-results">
+        Eşleşen sonuç bulunamadı.
+    </div>
+
+    <script>
+        function filterContent() {
+            const input = document.getElementById('search-input');
+            const filter = input.value.toUpperCase();
+            const departments = document.getElementsByClassName('department');
+            const noResults = document.getElementById('no-results');
+            let anyFound = false;
+
+            for (let i = 0; i < departments.length; i++) {
+                const dept = departments[i];
+                const deptName = dept.querySelector('.department-header').innerText.toUpperCase();
+                const transactions = dept.getElementsByClassName('transaction');
+                
+                let anyTransVisible = false;
+                for (let j = 0; j < transactions.length; j++) {
+                    const trans = transactions[j];
+                    const transName = trans.querySelector('.transaction-name').innerText.toUpperCase();
+                    if (transName.indexOf(filter) > -1 || deptName.indexOf(filter) > -1) {
+                        trans.style.display = "";
+                        anyTransVisible = true;
+                    } else {
+                        trans.style.display = "none";
+                    }
+                }
+
+                if (anyTransVisible) {
+                    dept.style.display = "";
+                    anyFound = true;
+                } else {
+                    dept.style.display = "none";
+                }
+            }
+
+            noResults.style.display = anyFound ? "none" : "block";
+        }
+
+        // Accordion functionality
+        var acc = document.getElementsByClassName("accordion-btn");
+        for (var i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.display === "block") {
+                    panel.style.display = "none";
+                } else {
+                    panel.style.display = "block";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
