@@ -1,6 +1,7 @@
 package server
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -17,6 +18,9 @@ import (
 	"github.com/godispatcher/dispatcher/utilities"
 	"github.com/mateuszkardas/toon-go"
 )
+
+//go:embed templates/help.html
+var templates embed.FS
 
 type Server[T any, TI transaction.Transaction[T]] struct {
 	Options  model.ServerOption
@@ -160,17 +164,7 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			a, _ := json.MarshalIndent(v, "", "  ")
 			return string(a)
 		},
-	}).ParseFiles("templates/help.html")
-
-	if err != nil {
-		// Try fallback if running from within a subdirectory (like during tests)
-		tmpl, err = template.New("help.html").Funcs(template.FuncMap{
-			"json": func(v interface{}) string {
-				a, _ := json.MarshalIndent(v, "", "  ")
-				return string(a)
-			},
-		}).ParseFiles("../templates/help.html")
-	}
+	}).ParseFS(templates, "templates/help.html")
 
 	if err != nil {
 		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
