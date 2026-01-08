@@ -15,6 +15,7 @@ import (
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
 	"github.com/godispatcher/dispatcher/utilities"
+	"github.com/mateuszkardas/toon-go"
 )
 
 type Server[T any, TI transaction.Transaction[T]] struct {
@@ -141,19 +142,13 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if format == "toon" {
-		w.Header().Add(constants.HTTP_CONTENT_TYPE, "text/plain; charset=utf-8")
-		fmt.Fprintf(w, "departments: items[%d]:\n", len(helperList.Departments))
-		for _, dept := range helperList.Departments {
-			fmt.Fprintf(w, "- name: %s\n", dept.Name)
-			fmt.Fprintf(w, "  transactions: items[%d]:\n", len(dept.Transactions))
-			for _, trans := range dept.Transactions {
-				fmt.Fprintf(w, "    - name: %s\n", trans.Name)
-				fmt.Fprintf(w, "    procedure:\n")
-				printToonMap(w, trans.Procudure, 6)
-				fmt.Fprintf(w, "    output:\n")
-				printToonMap(w, trans.Output, 6)
-			}
+		response, err := toon.Encode(helperList, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		w.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_TOON)
+		fmt.Fprint(w, string(response))
 		return
 	}
 

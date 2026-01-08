@@ -1,13 +1,14 @@
 package server
 
 import (
-	"github.com/godispatcher/dispatcher/department"
-	"github.com/godispatcher/dispatcher/model"
-	"github.com/godispatcher/dispatcher/transaction"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/godispatcher/dispatcher/department"
+	"github.com/godispatcher/dispatcher/model"
+	"github.com/godispatcher/dispatcher/transaction"
 )
 
 func TestApiDocServer_JSON(t *testing.T) {
