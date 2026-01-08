@@ -140,6 +140,23 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if format == "toon" {
+		w.Header().Add(constants.HTTP_CONTENT_TYPE, "text/plain; charset=utf-8")
+		fmt.Fprintf(w, "departments: items[%d]:\n", len(helperList.Departments))
+		for _, dept := range helperList.Departments {
+			fmt.Fprintf(w, "- name: %s\n", dept.Name)
+			fmt.Fprintf(w, "  transactions: items[%d]:\n", len(dept.Transactions))
+			for _, trans := range dept.Transactions {
+				fmt.Fprintf(w, "    - name: %s\n", trans.Name)
+				fmt.Fprintf(w, "    procedure:\n")
+				printToonMap(w, trans.Procudure, 6)
+				fmt.Fprintf(w, "    output:\n")
+				printToonMap(w, trans.Output, 6)
+			}
+		}
+		return
+	}
+
 	// HTML Output (Default)
 	w.Header().Add(constants.HTTP_CONTENT_TYPE, "text/html; charset=utf-8")
 
@@ -173,6 +190,25 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func ServJsonApiDoc() {
 	http.Handle("/help", ApiDocServer{})
+}
+
+func printToonMap(w http.ResponseWriter, data interface{}, indent int) {
+	if data == nil {
+		return
+	}
+
+	indentStr := strings.Repeat(" ", indent)
+	switch v := data.(type) {
+	case map[string]interface{}:
+		for key, val := range v {
+			if valMap, ok := val.(map[string]interface{}); ok {
+				fmt.Fprintf(w, "%s%s:\n", indentStr, key)
+				printToonMap(w, valMap, indent+2)
+			} else {
+				fmt.Fprintf(w, "%s%s: %v\n", indentStr, key, val)
+			}
+		}
+	}
 }
 
 // ServJsonApi starts the HTTP server and applies CORS/same-origin controls if configured

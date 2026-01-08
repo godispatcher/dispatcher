@@ -1,6 +1,9 @@
 package server
 
 import (
+	"github.com/godispatcher/dispatcher/department"
+	"github.com/godispatcher/dispatcher/model"
+	"github.com/godispatcher/dispatcher/transaction"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -68,3 +71,69 @@ func TestApiDocServer_HTML(t *testing.T) {
 		t.Errorf("handler returned unexpected body: missing dark mode support")
 	}
 }
+
+func TestApiDocServer_Toon(t *testing.T) {
+	// Add dummy data to DispatcherHolder
+	department.DispatcherHolder = nil
+	department.DispatcherHolder.Add("Auth", transaction.TransactionBucketItem{
+		Name: "login",
+		Transaction: mockServer{
+			request: struct {
+				Username string `json:"username"`
+				Password string `json:"password"`
+			}{},
+			response: struct {
+				AccessToken  string `json:"access_token"`
+				RefreshToken string `json:"refresh_token"`
+			}{},
+		},
+	})
+
+	req, err := http.NewRequest("GET", "/help?format=toon", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := ApiDocServer{}
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+
+	expectedHeader := "departments: items[1]:"
+	if !strings.Contains(body, expectedHeader) {
+		t.Errorf("Expected header %q not found in body", expectedHeader)
+	}
+
+	expectedDept := "- name: Auth"
+	if !strings.Contains(body, expectedDept) {
+		t.Errorf("Expected department %q not found in body", expectedDept)
+	}
+
+	expectedTransHeader := "  transactions: items[1]:"
+	if !strings.Contains(body, expectedTransHeader) {
+		t.Errorf("Expected transactions header %q not found in body", expectedTransHeader)
+	}
+
+	expectedTransName := "    - name: login"
+	if !strings.Contains(body, expectedTransName) {
+		t.Errorf("Expected transaction name %q not found in body", expectedTransName)
+	}
+}
+
+type mockServer struct {
+	model.ServerInterface
+	request  any
+	response any
+}
+
+func (m mockServer) Init(document model.Document) model.Document { return model.Document{} }
+func (m mockServer) GetRequest() any                             { return m.request }
+func (m mockServer) GetResponse() any                            { return m.response }
+func (m mockServer) GetOptions() model.ServerOption              { return model.ServerOption{} }
