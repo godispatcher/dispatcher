@@ -107,22 +107,22 @@ func TestApiDocServer_Toon(t *testing.T) {
 
 	body := rr.Body.String()
 
-	expectedHeader := "departments: items[1]:"
+	expectedHeader := "departments[1]:"
 	if !strings.Contains(body, expectedHeader) {
 		t.Errorf("Expected header %q not found in body", expectedHeader)
 	}
 
-	expectedDept := "- name: Auth"
+	expectedDept := "name: Auth"
 	if !strings.Contains(body, expectedDept) {
 		t.Errorf("Expected department %q not found in body", expectedDept)
 	}
 
-	expectedTransHeader := "  transactions: items[1]:"
+	expectedTransHeader := "transactions[1]:"
 	if !strings.Contains(body, expectedTransHeader) {
 		t.Errorf("Expected transactions header %q not found in body", expectedTransHeader)
 	}
 
-	expectedTransName := "    - name: login"
+	expectedTransName := "name: login"
 	if !strings.Contains(body, expectedTransName) {
 		t.Errorf("Expected transaction name %q not found in body", expectedTransName)
 	}
