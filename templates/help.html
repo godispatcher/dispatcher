@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoDispatcher API Help</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --header-bg: #f8f9fa;
+            --text-color: #333;
+            --title-color: #007bff;
+            --border-color: #dee2e6;
+            --dept-bg: #fff;
+            --dept-header-bg: #e9ecef;
+            --dept-header-text: #495057;
+            --trans-border: #f1f1f1;
+            --btn-hover: #f1f3f5;
+            --btn-active-bg: #e7f1ff;
+            --trans-name: #d63384;
+            --panel-bg: white;
+            --pre-bg: #f8f9fa;
+            --detail-title: #6c757d;
+            --input-border: #ced4da;
+            --input-bg: #fff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --header-bg: #1a1a1a;
+                --text-color: #e0e0e0;
+                --title-color: #3793ff;
+                --border-color: #404040;
+                --dept-bg: #2d2d2d;
+                --dept-header-bg: #3d3d3d;
+                --dept-header-text: #e0e0e0;
+                --trans-border: #404040;
+                --btn-hover: #3d3d3d;
+                --btn-active-bg: #213a57;
+                --trans-name: #ff79c6;
+                --panel-bg: #2d2d2d;
+                --pre-bg: #1e1e1e;
+                --detail-title: #aaa;
+                --input-border: #555;
+                --input-bg: #333;
+            }
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5; color: var(--text-color); max-width: 1000px; margin: 0 auto; padding: 20px; background-color: var(--bg-color); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 20px; position: sticky; top: 0; background: var(--header-bg); z-index: 100; }
+        h1 { margin: 0; color: var(--title-color); }
+        .search-container { flex-grow: 1; max-width: 400px; }
+        #search-input { width: 100%; padding: 10px; border: 1px solid var(--input-border); border-radius: 4px; font-size: 16px; background-color: var(--input-bg); color: var(--text-color); }
+        .department { margin-bottom: 20px; background: var(--dept-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .department-header { background: var(--dept-header-bg); padding: 10px 20px; font-weight: bold; font-size: 1.2em; border-bottom: 1px solid var(--border-color); color: var(--dept-header-text); }
+        .transaction { border-bottom: 1px solid var(--trans-border); }
+        .transaction:last-child { border-bottom: none; }
+        .accordion-btn { width: 100%; text-align: left; padding: 15px 20px; background: none; border: none; outline: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; color: var(--text-color); }
+        .accordion-btn:hover { background-color: var(--btn-hover); }
+        .accordion-btn.active { background-color: var(--btn-active-bg); }
+        .transaction-name { font-weight: 600; font-family: monospace; color: var(--trans-name); }
+        .accordion-icon::after { content: '\002B'; font-weight: bold; }
+        .active .accordion-icon::after { content: "\2212"; }
+        .panel { padding: 0 20px; background-color: var(--panel-bg); display: none; overflow: hidden; border-top: 1px solid var(--trans-border); }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
+        pre { background: var(--pre-bg); padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-color); }
+        .detail-title { font-weight: bold; margin-bottom: 10px; color: var(--detail-title); text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        .no-results { display: none; text-align: center; padding: 40px; font-size: 1.2em; color: var(--detail-title); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GoDispatcher API Doc</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Transaction veya departman ara..." onkeyup="filterContent()">
+        </div>
+    </header>
+
+    <div id="content">
+        {{range .Departments}}
+        <div class="department">
+            <div class="department-header">{{.Name}}</div>
+            {{range .Transactions}}
+            <div class="transaction">
+                <button class="accordion-btn">
+                    <span class="transaction-name">{{.Name}}</span>
+                    <span class="accordion-icon"></span>
+                </button>
+                <div class="panel">
+                    <div class="details-grid">
+                        <div>
+                            <div class="detail-title">Giriş Yapısı (Request)</div>
+                            <pre>{{.Procudure | json}}</pre>
+                        </div>
+                        <div>
+                            <div class="detail-title">Çıkış Yapısı (Response)</div>
+                            <pre>{{.Output | json}}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <div id="no-results" class="no-results">
+        Eşleşen sonuç bulunamadı.
+    </div>
+
+    <script>
+        function filterContent() {
+            const input = document.getElementById('search-input');
+            const filter = input.value.toUpperCase();
+            const departments = document.getElementsByClassName('department');
+            const noResults = document.getElementById('no-results');
+            let anyFound = false;
+
+            for (let i = 0; i < departments.length; i++) {
+                const dept = departments[i];
+                const deptName = dept.querySelector('.department-header').innerText.toUpperCase();
+                const transactions = dept.getElementsByClassName('transaction');
+                
+                let anyTransVisible = false;
+                for (let j = 0; j < transactions.length; j++) {
+                    const trans = transactions[j];
+                    const transName = trans.querySelector('.transaction-name').innerText.toUpperCase();
+                    if (transName.indexOf(filter) > -1 || deptName.indexOf(filter) > -1) {
+                        trans.style.display = "";
+                        anyTransVisible = true;
+                    } else {
+                        trans.style.display = "none";
+                    }
+                }
+
+                if (anyTransVisible) {
+                    dept.style.display = "";
+                    anyFound = true;
+                } else {
+                    dept.style.display = "none";
+                }
+            }
+
+            noResults.style.display = anyFound ? "none" : "block";
+        }
+
+        // Accordion functionality
+        var acc = document.getElementsByClassName("accordion-btn");
+        for (var i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.display === "block") {
+                    panel.style.display = "none";
+                } else {
+                    panel.style.display = "block";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

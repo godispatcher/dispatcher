@@ -10,7 +10,9 @@
 - **Middleware System**: Esnek ve genişletilebilir middleware desteği
 - **Department Architecture**: Servisleri mantıksal departmanlara ayırma
 - **Built-in Logging**: Otomatik request/response loglama
-- **API Documentation**: Otomatik API dokümantasyonu (/help endpoint)
+- **API Documentation**: Otomatik API dokümantasyonu (/help endpoint - HTML, JSON ve Toon formatları)
+- **Validation System**: Struct tag'leri ile otomatik request validasyonu (`require`, `is_empty`)
+- **CORS Support**: Kolay yapılandırılabilir CORS desteği
 - **Security**: Built-in licence validation ve güvenlik özellikleri
 - **Request Chaining**: Zincirleme request desteği
 - **JSON API**: RESTful JSON API desteği
@@ -39,7 +41,10 @@ go run .
 ```
 
 - HTTP: http://localhost:9000
-- API Dokümantasyonu: http://localhost:9000/help (kısa: /help?short=1)
+- API Dokümantasyonu: http://localhost:9000/help (HTML)
+- API Dokümantasyonu (JSON): http://localhost:9000/help?format=json
+- API Dokümantasyonu (Toon): http://localhost:9000/help?format=toon
+- API Dokümantasyonu (Kısa): http://localhost:9000/help?short=1
 - Stream (TCP/NDJSON): 9001 (HTTP portu + 1)
 
 3) Hızlı test (curl):
@@ -243,7 +248,24 @@ func (t *SecureTransaction) Transact() error {
 Framework otomatik olarak API dokümantasyonu sağlar:
 
 - **Full Documentation**: `GET /help`
+- **JSON Documentation**: `GET /help?format=json`
+- **Toon Documentation (Plain Text)**: `GET /help?format=toon`
 - **Short Documentation**: `GET /help?short=1`
+
+### Validation / Otomatik Doğrulama
+
+Framework, struct tag'lerini kullanarak otomatik form doğrulaması sağlar:
+
+```go
+type UserRequest struct {
+    Username string `json:"username" require:"true" is_empty:"false"`
+    Email    string `json:"email" require:"true"`
+    Age      int    `json:"age" require:"false"`
+}
+```
+
+- `require:"true"`: Alanın istekte bulunması zorunludur.
+- `is_empty:"false"`: Alanın boş olmaması (string için "" değil, int için nil değil) zorunludur.
 
 ## 🔒 Güvenlik / Security
 
