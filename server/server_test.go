@@ -128,6 +128,33 @@ func TestApiDocServer_Toon(t *testing.T) {
 	}
 }
 
+func TestApiDocServer_YAML(t *testing.T) {
+	req, err := http.NewRequest("GET", "/help?format=yaml", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := ApiDocServer{}
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	contentType := rr.Header().Get("Content-Type")
+	if contentType != "application/x-yaml" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			contentType, "application/x-yaml")
+	}
+
+	if !strings.Contains(rr.Body.String(), "departments:") {
+		t.Errorf("handler returned unexpected body: %v", rr.Body.String())
+	}
+}
+
 type mockServer struct {
 	model.ServerInterface
 	request  any

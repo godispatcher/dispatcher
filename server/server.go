@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/godispatcher/dispatcher/constants"
 	"github.com/godispatcher/dispatcher/department"
 	"github.com/godispatcher/dispatcher/middleware"
@@ -101,7 +103,7 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 
 type TransactionListHelper struct {
 	Name      string      `json:"name"`
-	Procudure interface{} `json:"procedure,omitempty"`
+	Procedure interface{} `json:"procedure,omitempty"`
 	Output    interface{} `json:"output,omitempty"`
 }
 type DepartmentListHelper struct {
@@ -128,7 +130,7 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			transaction.Name = (*v).GetName()
 			if !r.URL.Query().Has("short") || r.URL.Query().Get("short") == "0" {
 				nestedTypeCtrl = &[]string{}
-				transaction.Procudure = utilities.Analysis((*v).GetTransaction().GetRequest(), nestedTypeCtrl)
+				transaction.Procedure = utilities.Analysis((*v).GetTransaction().GetRequest(), nestedTypeCtrl)
 				nestedTypeCtrl = &[]string{}
 				transaction.Output = utilities.Analysis((*v).GetTransaction().GetResponse(), nestedTypeCtrl)
 			}
@@ -152,6 +154,17 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_TOON)
+		fmt.Fprint(w, string(response))
+		return
+	}
+
+	if format == "yaml" {
+		response, err := yaml.Marshal(helperList)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Add(constants.HTTP_CONTENT_TYPE, constants.HTTP_CONTENT_YAML)
 		fmt.Fprint(w, string(response))
 		return
 	}

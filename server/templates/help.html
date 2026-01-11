@@ -72,6 +72,11 @@
 <body>
     <header>
         <h1>GoDispatcher API Doc</h1>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="?format=json" target="_blank" style="text-decoration: none; color: var(--title-color); font-size: 0.9em; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px;">JSON</a>
+            <a href="?format=yaml" target="_blank" style="text-decoration: none; color: var(--title-color); font-size: 0.9em; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px;">YAML</a>
+            <a href="?format=toon" target="_blank" style="text-decoration: none; color: var(--title-color); font-size: 0.9em; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px;">TOON</a>
+        </div>
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Transaction veya departman ara..." onkeyup="filterContent()">
         </div>
@@ -91,7 +96,7 @@
                     <div class="details-grid">
                         <div>
                             <div class="detail-title">Giriş Yapısı (Request)</div>
-                            <pre>{{.Procudure | json}}</pre>
+                            <pre>{{.Procedure | json}}</pre>
                         </div>
                         <div>
                             <div class="detail-title">Çıkış Yapısı (Response)</div>
