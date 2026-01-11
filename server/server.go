@@ -177,6 +177,10 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			a, _ := json.MarshalIndent(v, "", "  ")
 			return string(a)
 		},
+		"yaml": func(v interface{}) string {
+			a, _ := yaml.Marshal(v)
+			return string(a)
+		},
 	}).ParseFS(templates, "templates/help.html")
 
 	if err != nil {

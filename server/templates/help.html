@@ -23,6 +23,9 @@
             --detail-title: #6c757d;
             --input-border: #ced4da;
             --input-bg: #fff;
+            --copy-btn-bg: #007bff;
+            --copy-btn-hover: #0056b3;
+            --copy-btn-text: #fff;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -44,6 +47,8 @@
                 --detail-title: #aaa;
                 --input-border: #555;
                 --input-bg: #333;
+                --copy-btn-bg: #3793ff;
+                --copy-btn-hover: #1e70e0;
             }
         }
 
@@ -67,6 +72,12 @@
         pre { background: var(--pre-bg); padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-color); }
         .detail-title { font-weight: bold; margin-bottom: 10px; color: var(--detail-title); text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
         .no-results { display: none; text-align: center; padding: 40px; font-size: 1.2em; color: var(--detail-title); }
+        .copy-group { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+        .copy-btn { padding: 4px 8px; font-size: 11px; border: none; border-radius: 4px; background: var(--copy-btn-bg); color: var(--copy-btn-text); cursor: pointer; transition: background 0.2s; }
+        .copy-btn:hover { background: var(--copy-btn-hover); }
+        .copy-btn:active { transform: translateY(1px); }
+        .copy-success { font-size: 11px; color: #28a745; margin-left: 5px; opacity: 0; transition: opacity 0.3s; }
+        .copy-success.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -93,14 +104,37 @@
                     <span class="accordion-icon"></span>
                 </button>
                 <div class="panel">
+                    <div style="padding: 15px 0 5px 0; border-bottom: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85em; font-weight: bold; color: var(--detail-title); text-transform: uppercase;">Tüm Transaction Yapısı</span>
+                        <div class="copy-group" style="margin-bottom: 0;">
+                            <button class="copy-btn" onclick="copyToClipboard(this, 'json')">Tümünü JSON Kopyala</button>
+                            <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">Tümünü YAML Kopyala</button>
+                            <span class="copy-success">Kopyalandı!</span>
+                        </div>
+                        <div class="data-container" data-json="{{. | json}}" data-yaml="{{. | yaml}}" style="display: none;"></div>
+                    </div>
                     <div class="details-grid">
                         <div>
                             <div class="detail-title">Giriş Yapısı (Request)</div>
-                            <pre>{{.Procedure | json}}</pre>
+                            <div class="copy-group">
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'json')">JSON Kopyala</button>
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">YAML Kopyala</button>
+                                <span class="copy-success">Kopyalandı!</span>
+                            </div>
+                            <div class="data-container" data-json="{{.Procedure | json}}" data-yaml="{{.Procedure | yaml}}">
+                                <pre>{{.Procedure | json}}</pre>
+                            </div>
                         </div>
                         <div>
                             <div class="detail-title">Çıkış Yapısı (Response)</div>
-                            <pre>{{.Output | json}}</pre>
+                            <div class="copy-group">
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'json')">JSON Kopyala</button>
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">YAML Kopyala</button>
+                                <span class="copy-success">Kopyalandı!</span>
+                            </div>
+                            <div class="data-container" data-json="{{.Output | json}}" data-yaml="{{.Output | yaml}}">
+                                <pre>{{.Output | json}}</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -148,6 +182,21 @@
             }
 
             noResults.style.display = anyFound ? "none" : "block";
+        }
+
+        function copyToClipboard(btn, format) {
+            const container = btn.closest('.copy-group').nextElementSibling;
+            const text = container.getAttribute('data-' + format);
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const successMsg = btn.parentElement.querySelector('.copy-success');
+                successMsg.classList.add('show');
+                setTimeout(() => {
+                    successMsg.classList.remove('show');
+                }, 2000);
+            }).catch(err => {
+                console.error('Kopyalama hatası: ', err);
+            });
         }
 
         // Accordion functionality
