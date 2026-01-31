@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+
 	"github.com/godispatcher/dispatcher/model"
 )
 
@@ -35,3 +36,9 @@ func (c Middleware[Req, Res]) GetRequest() any {
 func (c Middleware[Req, Res]) GetResponse() any {
 	return c.Response
 }
+
+/*
+func (m *Middleware[Req, Res]) SetupTransaction() error {
+	return nil
+}
+*/

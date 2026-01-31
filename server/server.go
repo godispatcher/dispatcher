@@ -64,6 +64,13 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 		return outputErrDoc
 	}
 
+	err = ta.SetupTransaction()
+
+	if err != nil {
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		return outputErrDoc
+	}
+
 	jsonByteData, err := json.Marshal(document.Form)
 	if err != nil {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
