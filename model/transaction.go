@@ -7,7 +7,8 @@ type Transaction interface {
 }
 
 type TransactionOptions struct {
-	Security SecurityOptions `json:"security,omitempty"`
+	Security    SecurityOptions    `json:"security,omitempty"`
+	RateLimiter RateLimiterOptions `json:"rate_limiter,omitempty"`
 }
 
 func (m TransactionOptions) GetOptions() TransactionOptions {
@@ -16,6 +17,12 @@ func (m TransactionOptions) GetOptions() TransactionOptions {
 
 type SecurityOptions struct {
 	LicenceChecker bool `json:"licence_checker,omitempty"`
+}
+
+type RateLimiterOptions struct {
+	Enabled bool `json:"enabled,omitempty"`
+	Limit   int  `json:"limit,omitempty"`
+	Window  int  `json:"window,omitempty"` // seconds
 }
 
 type LicenceValidator func(licence string) (isValid bool)

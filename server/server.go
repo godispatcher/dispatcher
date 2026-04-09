@@ -47,6 +47,24 @@ func (s Server[T, TI]) GetOptions() model.ServerOption {
 }
 
 func (s Server[T, TI]) Init(document model.Document) model.Document {
+	// Rate Limiting
+	if document.Options != nil && document.Options.RateLimiter.Enabled {
+		limit := document.Options.RateLimiter.Limit
+		window := document.Options.RateLimiter.Window
+		if limit > 0 && window > 0 {
+			key := fmt.Sprintf("%s:%s", document.Department, document.Transaction)
+			rl := utilities.GetRateLimiter(key, limit, window)
+			if !rl.Allow() {
+				return model.Document{
+					Department:  document.Department,
+					Transaction: document.Transaction,
+					Error:       "Rate limit exceeded",
+					Type:        "Error",
+				}
+			}
+		}
+	}
+
 	// Store verify code in a goroutine-local context for downstream calls
 	if document.Security != nil && strings.TrimSpace(document.Security.VerifyCode) != "" {
 		model.SetCurrentVerifyCode(document.Security.VerifyCode)
