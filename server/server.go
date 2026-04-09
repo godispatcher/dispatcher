@@ -48,9 +48,16 @@ func (s Server[T, TI]) GetOptions() model.ServerOption {
 
 func (s Server[T, TI]) Init(document model.Document) model.Document {
 	// Rate Limiting
-	if document.Options != nil && document.Options.RateLimiter.Enabled {
-		limit := document.Options.RateLimiter.Limit
-		window := document.Options.RateLimiter.Window
+	opts := s.Options.TransactionOptions
+	if document.Options != nil {
+		if document.Options.RateLimiter.Enabled {
+			opts.RateLimiter = document.Options.RateLimiter
+		}
+	}
+
+	if opts.RateLimiter.Enabled {
+		limit := opts.RateLimiter.Limit
+		window := opts.RateLimiter.Window
 		if limit > 0 && window > 0 {
 			key := fmt.Sprintf("%s:%s", document.Department, document.Transaction)
 			rl := utilities.GetRateLimiter(key, limit, window)

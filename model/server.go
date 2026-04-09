@@ -5,7 +5,8 @@ import (
 )
 
 type ServerOption struct {
-	Header http.Header
+	Header             http.Header
+	TransactionOptions TransactionOptions
 }
 
 type CORSOptions struct {
