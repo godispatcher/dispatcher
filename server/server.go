@@ -59,16 +59,39 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 		limit := opts.RateLimiter.Limit
 		window := opts.RateLimiter.Window
 		if limit > 0 && window > 0 {
-			key := fmt.Sprintf("%s:%s", document.Department, document.Transaction)
+			licence := ""
+			verifyCode := ""
+			if document.Security != nil {
+				licence = document.Security.Licence
+				verifyCode = document.Security.VerifyCode
+			}
+
+			// In a real HTTP context, we would get the remote address from the request.
+			// Since Init takes model.Document, we might need to pass the IP or assume a default.
+			remoteAddr := "127.0.0.1" // Default for now, should ideally be in request context
+
+			key := utilities.GenerateKey(document.Department, document.Transaction, string(opts.RateLimiter.Scope), remoteAddr, licence, verifyCode)
 			rl := utilities.GetRateLimiter(key, limit, window)
-			if !rl.Allow() {
+			res := rl.Allow()
+
+			if !res.Allowed {
+				fmt.Println("Rate limit exceeded. Try again in", res.RetryAfter, "seconds.")
 				return model.Document{
 					Department:  document.Department,
 					Transaction: document.Transaction,
-					Error:       "Rate limit exceeded",
+					Error:       fmt.Sprintf("Rate limit exceeded. Try again in %d seconds.", res.RetryAfter),
 					Type:        "Error",
 				}
 			}
+
+			// Add headers to options (if we had access to the response writer here, but Init returns Document)
+			if s.Options.Header == nil {
+				s.Options.Header = make(http.Header)
+			}
+			s.Options.Header.Set("X-RateLimit-Limit", fmt.Sprintf("%d", res.Limit))
+			s.Options.Header.Set("X-RateLimit-Remaining", fmt.Sprintf("%d", res.Remaining))
+			s.Options.Header.Set("X-RateLimit-Reset", fmt.Sprintf("%d", res.Reset))
+			s.Options.Header.Set("Retry-After", fmt.Sprintf("%d", res.RetryAfter))
 		}
 	}
 
