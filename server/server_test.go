@@ -9,6 +9,7 @@ import (
 	"github.com/godispatcher/dispatcher/department"
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
+	"github.com/godispatcher/dispatcher/utilities"
 )
 
 func TestApiDocServer_JSON(t *testing.T) {
@@ -165,3 +166,41 @@ func (m mockServer) Init(document model.Document) model.Document { return model.
 func (m mockServer) GetRequest() any                             { return m.request }
 func (m mockServer) GetResponse() any                            { return m.response }
 func (m mockServer) GetOptions() model.ServerOption              { return model.ServerOption{} }
+
+func TestRateLimiter(t *testing.T) {
+	doc := model.Document{
+		Department:  "Test",
+		Transaction: "Limited",
+		Options: &model.TransactionOptions{
+			RateLimiter: model.RateLimitOptions{
+				Enabled: true,
+				Limit:   2,
+				Window:  60,
+				Scope:   model.ScopeIP,
+			},
+		},
+	}
+
+	// 1. request
+	key := utilities.GenerateKey(doc.Department, doc.Transaction, string(doc.Options.RateLimiter.Scope), "127.0.0.1", "", "")
+	rl := utilities.GetRateLimiter(key, doc.Options.RateLimiter.Limit, doc.Options.RateLimiter.Window)
+	res1 := rl.Allow()
+	if !res1.Allowed {
+		t.Errorf("First request should be allowed")
+	}
+
+	// 2. request
+	res2 := rl.Allow()
+	if !res2.Allowed {
+		t.Errorf("Second request should be allowed")
+	}
+
+	// 3. request (should be limited)
+	res3 := rl.Allow()
+	if res3.Allowed {
+		t.Errorf("Third request should be limited")
+	}
+	if res3.RetryAfter <= 0 {
+		t.Errorf("RetryAfter should be positive")
+	}
+}
