@@ -41,18 +41,42 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 	} else if strings.HasPrefix(ct, ContentTypeMultipart) {
 		docTmp, err := MultipartFormHandler(r)
 		if err != nil {
-			rw = WriteErrorDoc(errors.New("dad content type"), w)
+			rw = WriteErrorDoc(errors.New("multipart form handler error:"+err.Error()), w)
 			return rw
 		}
 		document = docTmp
 	} else {
-		rw = WriteErrorDoc(errors.New("dad content type"), w)
+		rw = WriteErrorDoc(errors.New("bad content type"), w)
 		return rw
 	}
 
-	if &document == nil {
-		rw = WriteErrorDoc(errors.New("dad content type"), w)
+	if document.Department == "" && document.Transaction == "" {
+		rw = WriteErrorDoc(errors.New("department and transaction parameters is empty"), w)
 		return rw
+	}
+
+	document.Header = r.Header
+	document.QueryParams = r.URL.Query()
+
+	path := r.URL.Path
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) >= 2 {
+		if document.URLParams == nil {
+			document.URLParams = make(map[string]string)
+		}
+		document.URLParams["department"] = segments[0]
+		document.URLParams["transaction"] = segments[1]
+
+		for i := 2; i < len(segments); i++ {
+			document.URLParams[fmt.Sprintf("segment_%d", i)] = segments[i]
+		}
+
+		if document.Department == "" {
+			document.Department = segments[0]
+		}
+		if document.Transaction == "" {
+			document.Transaction = segments[1]
+		}
 	}
 	// If document.Security.VerifyCode is empty, try to obtain it from X-Verify-Code header
 	if document.Security == nil || strings.TrimSpace(document.Security.VerifyCode) == "" {
@@ -69,7 +93,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 
 		response, err := json.Marshal(outputDoc)
 		if err != nil {
-			rw = WriteErrorDoc(errors.New("dad content type"), w)
+			rw = WriteErrorDoc(errors.New("bad transaction response"), w)
 			return rw
 		}
 
@@ -112,7 +136,7 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 }
 
 func WriteErrorDoc(err error, w http.ResponseWriter) (rw model.RegisterResponseModel) {
-	outputDoc := model.Document{Error: errors.New("transaction not found").Error(), Type: "Error"}
+	outputDoc := model.Document{Error: err.Error(), Type: "Error"}
 	w.WriteHeader(http.StatusBadRequest)
 	rw.StatusCode = http.StatusBadRequest
 	response, err := json.Marshal(outputDoc)
