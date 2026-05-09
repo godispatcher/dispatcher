@@ -2,8 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/url"
 )
 
 type DocumentForm map[string]interface{}
@@ -23,9 +21,6 @@ type Document struct {
 	Transaction        string              `json:"transaction,omitempty"`
 	Type               string              `json:"type,omitempty"`
 	Procedure          interface{}         `json:"procedure,omitempty"`
-	Header             http.Header         `json:"header,omitempty"`
-	QueryParams        url.Values          `json:"query_params,omitempty"`
-	URLParams          map[string]string   `json:"url_params,omitempty"`
 	Form               DocumentForm        `json:"form,omitempty"`
 	Output             interface{}         `json:"output,omitempty"`
 	Error              interface{}         `json:"error,omitempty"`

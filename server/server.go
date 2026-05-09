@@ -67,8 +67,14 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 			}
 
 			// In a real HTTP context, we would get the remote address from the request.
-			// Since Init takes model.Document, we might need to pass the IP or assume a default.
-			remoteAddr := "127.0.0.1" // Default for now, should ideally be in request context
+			remoteAddr := "127.0.0.1" // Default for now
+			if ctx := model.GetRequestContext(); ctx != nil {
+				if xRealIP := ctx.Header.Get("X-Real-IP"); xRealIP != "" {
+					remoteAddr = xRealIP
+				} else if xForwardedFor := ctx.Header.Get("X-Forwarded-For"); xForwardedFor != "" {
+					remoteAddr = strings.Split(xForwardedFor, ",")[0]
+				}
+			}
 
 			key := utilities.GenerateKey(document.Department, document.Transaction, string(opts.RateLimiter.Scope), remoteAddr, licence, verifyCode)
 			rl := utilities.GetRateLimiter(key, limit, window)

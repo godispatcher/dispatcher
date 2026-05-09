@@ -22,7 +22,17 @@ func (m *MockTransactionItem) GetTransaction() model.ServerInterface {
 type MockServer struct{}
 
 func (s *MockServer) Init(doc model.Document) model.Document {
-	// Return the doc as is so we can inspect it in the response
+	// Return the doc as is, but we also want to check the RequestContext
+	ctx := model.GetRequestContext()
+	if ctx != nil {
+		// We can't easily return ctx in model.Document anymore, so we might just log or use a global for testing
+		// but since we want to verify fields, let's use the Output field of document for verification in this mock
+		verification := make(map[string]interface{})
+		verification["header"] = ctx.Header
+		verification["query_params"] = ctx.QueryParams
+		verification["url_params"] = ctx.URLParams
+		doc.Output = verification
+	}
 	return doc
 }
 func (s *MockServer) GetRequest() any                { return struct{}{} }
@@ -55,27 +65,33 @@ func TestRegisterMainFunc_PopulatesFields(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	// Check Header
-	if responseDoc.Header.Get("X-Custom-Header") != "custom-value" {
-		t.Errorf("Expected X-Custom-Header to be 'custom-value', got '%v'", responseDoc.Header.Get("X-Custom-Header"))
+	// Check verification data from Output
+	output, ok := responseDoc.Output.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected output to be a map, got %T", responseDoc.Output)
 	}
 
-	// Check QueryParams
-	if responseDoc.QueryParams.Get("param1") != "val1" {
-		t.Errorf("Expected param1 to be 'val1', got '%v'", responseDoc.QueryParams.Get("param1"))
+	header := output["header"].(map[string]interface{})
+	if header["X-Custom-Header"].([]interface{})[0].(string) != "custom-value" {
+		t.Errorf("Expected X-Custom-Header to be 'custom-value', got '%v'", header["X-Custom-Header"])
 	}
 
-	// Check URLParams
-	if responseDoc.URLParams["department"] != "test-dept" {
-		t.Errorf("Expected URLParams department to be 'test-dept', got '%v'", responseDoc.URLParams["department"])
+	queryParams := output["query_params"].(map[string]interface{})
+	if queryParams["param1"].([]interface{})[0].(string) != "val1" {
+		t.Errorf("Expected param1 to be 'val1', got '%v'", queryParams["param1"])
 	}
-	if responseDoc.URLParams["transaction"] != "test-trans" {
-		t.Errorf("Expected URLParams transaction to be 'test-trans', got '%v'", responseDoc.URLParams["transaction"])
+
+	urlParams := output["url_params"].(map[string]interface{})
+	if urlParams["department"] != "test-dept" {
+		t.Errorf("Expected URLParams department to be 'test-dept', got '%v'", urlParams["department"])
 	}
-	if responseDoc.URLParams["segment_2"] != "extra" {
-		t.Errorf("Expected URLParams segment_2 to be 'extra', got '%v'", responseDoc.URLParams["segment_2"])
+	if urlParams["transaction"] != "test-trans" {
+		t.Errorf("Expected URLParams transaction to be 'test-trans', got '%v'", urlParams["transaction"])
 	}
-	if responseDoc.URLParams["segment_3"] != "param" {
-		t.Errorf("Expected URLParams segment_3 to be 'param', got '%v'", responseDoc.URLParams["segment_3"])
+	if urlParams["segment_2"] != "extra" {
+		t.Errorf("Expected URLParams segment_2 to be 'extra', got '%v'", urlParams["segment_2"])
+	}
+	if urlParams["segment_3"] != "param" {
+		t.Errorf("Expected URLParams segment_3 to be 'param', got '%v'", urlParams["segment_3"])
 	}
 }

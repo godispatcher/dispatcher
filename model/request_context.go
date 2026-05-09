@@ -1,6 +1,8 @@
 package model
 
 import (
+	"net/http"
+	"net/url"
 	"runtime"
 	"strconv"
 	"strings"
@@ -8,6 +10,15 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 )
+
+type RequestContext struct {
+	Header      http.Header
+	QueryParams url.Values
+	URLParams   map[string]string
+}
+
+// contextStore holds RequestContext keyed by per-goroutine UUID v4 for per-request propagation.
+var contextStore sync.Map // map[string]*RequestContext
 
 // verifyCodeStore holds verify codes keyed by per-goroutine UUID v4 for per-request propagation.
 var verifyCodeStore sync.Map // map[string]string
@@ -45,6 +56,38 @@ func getGID() string {
 	u := uuid.NewV4().String()
 	gidUUIDStore.Store(gid, u)
 	return u
+}
+
+// SetRequestContext stores the RequestContext for the current goroutine.
+func SetRequestContext(ctx *RequestContext) {
+	gid := getGID()
+	if gid == "" {
+		return
+	}
+	contextStore.Store(gid, ctx)
+}
+
+// GetRequestContext returns the RequestContext for the current goroutine, if any.
+func GetRequestContext() *RequestContext {
+	gid := getGID()
+	if gid == "" {
+		return nil
+	}
+	if v, ok := contextStore.Load(gid); ok {
+		if ctx, ok2 := v.(*RequestContext); ok2 {
+			return ctx
+		}
+	}
+	return nil
+}
+
+// ClearRequestContext removes any stored RequestContext for the current goroutine.
+func ClearRequestContext() {
+	gid := getGID()
+	if gid == "" {
+		return
+	}
+	contextStore.Delete(gid)
 }
 
 // SetCurrentVerifyCode stores the verify code for the current goroutine.

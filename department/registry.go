@@ -55,20 +55,21 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 		return rw
 	}
 
-	document.Header = r.Header
-	document.QueryParams = r.URL.Query()
+	// Store RequestContext in a goroutine-local store
+	ctx := &model.RequestContext{
+		Header:      r.Header,
+		QueryParams: r.URL.Query(),
+		URLParams:   make(map[string]string),
+	}
 
 	path := r.URL.Path
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	if len(segments) >= 2 {
-		if document.URLParams == nil {
-			document.URLParams = make(map[string]string)
-		}
-		document.URLParams["department"] = segments[0]
-		document.URLParams["transaction"] = segments[1]
+		ctx.URLParams["department"] = segments[0]
+		ctx.URLParams["transaction"] = segments[1]
 
 		for i := 2; i < len(segments); i++ {
-			document.URLParams[fmt.Sprintf("segment_%d", i)] = segments[i]
+			ctx.URLParams[fmt.Sprintf("segment_%d", i)] = segments[i]
 		}
 
 		if document.Department == "" {
@@ -78,6 +79,9 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 			document.Transaction = segments[1]
 		}
 	}
+	model.SetRequestContext(ctx)
+	defer model.ClearRequestContext()
+
 	// If document.Security.VerifyCode is empty, try to obtain it from X-Verify-Code header
 	if document.Security == nil || strings.TrimSpace(document.Security.VerifyCode) == "" {
 		if vcode := strings.TrimSpace(r.Header.Get("X-Verify-Code")); vcode != "" {
