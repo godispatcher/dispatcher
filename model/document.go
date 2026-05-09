@@ -28,6 +28,7 @@ type Document struct {
 	ChainRequestOption ChainRequestOption  `json:"chain_request_option,omitempty"`
 	Security           *Security           `json:"security,omitempty"`
 	Options            *TransactionOptions `json:"options,omitempty"`
+	StatusCode         int                 `json:"status_code,omitempty"`
 }
 
 type Security struct {

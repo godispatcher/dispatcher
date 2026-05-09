@@ -109,11 +109,21 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 					outputDoc.Dispatchings = append(outputDoc.Dispatchings, &dOutputDoc)
 					//TODO: if Ignored errors add dispatching ignoredError option params in model.document
 					if dOutputDoc.Error != nil {
+						if dOutputDoc.StatusCode != 0 {
+							outputDoc.StatusCode = dOutputDoc.StatusCode
+						}
+						response, _ = json.Marshal(outputDoc)
 						break
 					}
 				}
 			}
 		}
+
+		if outputDoc.StatusCode != 0 {
+			w.WriteHeader(outputDoc.StatusCode)
+			rw.StatusCode = outputDoc.StatusCode
+		}
+
 		options := (*ta).GetTransaction().GetOptions()
 		if &options != nil {
 			for key, _ := range options.Header {
@@ -125,9 +135,15 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 		fmt.Fprint(w, string(response))
 		return rw
 	}
-	outputDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: errors.New("transaction not found").Error(), Type: "Error"}
-	w.WriteHeader(http.StatusBadRequest)
-	rw.StatusCode = http.StatusBadRequest
+	outputDoc := model.Document{
+		Department:  document.Department,
+		Transaction: document.Transaction,
+		Error:       errors.New("transaction not found").Error(),
+		Type:        "Error",
+		StatusCode:  http.StatusNotFound,
+	}
+	w.WriteHeader(http.StatusNotFound)
+	rw.StatusCode = http.StatusNotFound
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -140,9 +156,10 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 }
 
 func WriteErrorDoc(err error, w http.ResponseWriter) (rw model.RegisterResponseModel) {
-	outputDoc := model.Document{Error: err.Error(), Type: "Error"}
-	w.WriteHeader(http.StatusBadRequest)
-	rw.StatusCode = http.StatusBadRequest
+	statusCode := http.StatusBadRequest
+	outputDoc := model.Document{Error: err.Error(), Type: "Error", StatusCode: statusCode}
+	w.WriteHeader(statusCode)
+	rw.StatusCode = statusCode
 	response, err := json.Marshal(outputDoc)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

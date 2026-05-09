@@ -87,6 +87,7 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 					Transaction: document.Transaction,
 					Error:       fmt.Sprintf("Rate limit exceeded. Try again in %d seconds.", res.RetryAfter),
 					Type:        "Error",
+					StatusCode:  http.StatusTooManyRequests,
 				}
 			}
 
@@ -114,38 +115,38 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	err := ta.SetSelfRunables()
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusInternalServerError}
 		return outputErrDoc
 	}
 
 	err = ta.SetupTransaction()
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusInternalServerError}
 		return outputErrDoc
 	}
 
 	jsonByteData, err := json.Marshal(document.Form)
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusBadRequest}
 		return outputErrDoc
 	}
 
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusBadRequest}
 		return outputErrDoc
 	}
 	validator := model.DocumentFormValidater{Request: string(jsonByteData)}
 	err = validator.Validate(ta.GetRequest())
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusBadRequest}
 		return outputErrDoc
 	}
 	if ta.GetRunables() != nil {
 		for _, runF := range ta.GetRunables() {
 			err := runF(document)
 			if err != nil {
-				outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+				outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusForbidden}
 				return outputErrDoc
 			}
 		}
@@ -153,11 +154,12 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 	ta.SetRequest(jsonByteData)
 	err = ta.Transact()
 	if err != nil {
-		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error", StatusCode: http.StatusInternalServerError}
 		return outputErrDoc
 	}
 	document.Output = ta.GetResponse()
 	document.Type = "Result"
+	document.StatusCode = http.StatusOK
 
 	return document
 }
