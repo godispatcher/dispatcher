@@ -30,6 +30,11 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 			rw = WriteErrorDoc(err, w)
 			return rw
 		}
+
+		if docTmp.Department == "" && docTmp.Transaction == "" {
+			docTmp, err = UrlSegmentParser(r)
+		}
+
 		document = docTmp
 	} else if strings.HasPrefix(ct, ContentTypeFormURLEncoded) {
 		docTmp, err := UrlEncodedHandler(r)
@@ -179,6 +184,26 @@ func JsonHandler(r *http.Request) (model.Document, error) {
 		return document, err
 	}
 	err = json.Unmarshal(bodyByte, &document)
+	return document, err
+}
+
+func UrlSegmentParser(r *http.Request) (model.Document, error) {
+	document := model.Document{}
+	path := r.URL.Path
+
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) < 2 {
+		return document, errors.New("invalid path")
+	}
+	document.Department = segments[0]
+	document.Transaction = segments[1]
+
+	bodyByte, err := io.ReadAll(r.Body)
+	if err != nil {
+		return document, err
+	}
+	fmt.Println("FORM", string(bodyByte))
+	err = json.Unmarshal(bodyByte, &document.Form)
 	return document, err
 }
 
