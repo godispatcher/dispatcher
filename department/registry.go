@@ -1,6 +1,7 @@
 package department
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +25,19 @@ const (
 func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.RegisterResponseModel) {
 	var document model.Document
 	ct := r.Header.Get("Content-Type")
+
+	// Read body once to reuse it
+	var bodyBytes []byte
+	if r.Body != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(r.Body)
+		if err != nil {
+			rw = WriteErrorDoc(err, w)
+			return rw
+		}
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
+
 	if strings.HasPrefix(ct, ContentTypeJSON) {
 		docTmp, err := JsonHandler(r)
 		if err != nil {
@@ -32,6 +46,8 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 		}
 
 		if docTmp.Department == "" && docTmp.Transaction == "" {
+			// Restore body for UrlSegmentParser
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 			docTmp, err = UrlSegmentParser(r)
 		}
 
