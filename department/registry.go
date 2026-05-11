@@ -67,8 +67,18 @@ func RegisterMainFunc(w http.ResponseWriter, r *http.Request) (rw model.Register
 		}
 		document = docTmp
 	} else {
-		rw = WriteErrorDoc(errors.New("bad content type"), w)
-		return rw
+		if r.Method == http.MethodGet {
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			docTmp, _ := UrlSegmentParser(r)
+			if docTmp.Department == "" && docTmp.Transaction == "" {
+				rw = WriteErrorDoc(errors.New("department and transaction parameters is empty"), w)
+				return rw
+			}
+			document = docTmp
+		} else {
+			rw = WriteErrorDoc(errors.New("bad content type"), w)
+			return rw
+		}
 	}
 
 	if document.Department == "" && document.Transaction == "" {
