@@ -218,7 +218,6 @@ func UrlSegmentParser(r *http.Request) (model.Document, error) {
 	if err != nil {
 		return document, err
 	}
-	fmt.Println("FORM", string(bodyByte))
 	err = json.Unmarshal(bodyByte, &document.Form)
 	return document, err
 }

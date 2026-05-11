@@ -12,7 +12,7 @@ type Middleware[Req any, Res any] struct {
 	Request  Req
 	Response Res
 	Runables []MiddlewareRunable
-	Context  *model.RequestContext
+	Context  model.RequestContext
 }
 
 func (m Middleware[Req, Res]) GetRunables() []MiddlewareRunable {
