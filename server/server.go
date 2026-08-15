@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -175,7 +176,6 @@ type ApiDocServer struct {
 
 func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	helperList := HelperList{}
-	var nestedTypeCtrl *[]string
 	for _, val := range department.DispatcherHolder {
 		department := DepartmentListHelper{}
 		department.Name = val.Name
@@ -184,10 +184,18 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			transaction := TransactionListHelper{}
 			transaction.Name = (*v).GetName()
 			if !r.URL.Query().Has("short") || r.URL.Query().Get("short") == "0" {
-				nestedTypeCtrl = &[]string{}
-				transaction.Procedure = utilities.Analysis((*v).GetTransaction().GetRequest(), nestedTypeCtrl)
-				nestedTypeCtrl = &[]string{}
-				transaction.Output = utilities.Analysis((*v).GetTransaction().GetResponse(), nestedTypeCtrl)
+				procedure, err := utilities.AnalyzeJSONSchema(reflect.TypeOf((*v).GetTransaction().GetRequest()))
+				if err != nil {
+					http.Error(w, "Request schema analysis failed: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				output, err := utilities.AnalyzeJSONSchema(reflect.TypeOf((*v).GetTransaction().GetResponse()))
+				if err != nil {
+					http.Error(w, "Response schema analysis failed: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				transaction.Procedure = procedure
+				transaction.Output = output
 			}
 			department.Transactions = append(department.Transactions, transaction)
 		}

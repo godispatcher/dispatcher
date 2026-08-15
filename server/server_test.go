@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -162,10 +164,70 @@ type mockServer struct {
 	response any
 }
 
+type failingResponseMarshaler struct{}
+
+func (failingResponseMarshaler) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("response marshal failed")
+}
+
 func (m mockServer) Init(document model.Document) model.Document { return model.Document{} }
 func (m mockServer) GetRequest() any                             { return m.request }
 func (m mockServer) GetResponse() any                            { return m.response }
 func (m mockServer) GetOptions() model.ServerOption              { return model.ServerOption{} }
+
+func TestApiDocServer_ResponseSchema(t *testing.T) {
+	department.DispatcherHolder = nil
+	department.DispatcherHolder.Add("Schema", transaction.TransactionBucketItem{
+		Name: "show",
+		Transaction: mockServer{
+			request: struct{}{},
+			response: struct {
+				Name string `json:"name"`
+			}{},
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/help?format=json", nil)
+	rr := httptest.NewRecorder()
+	ApiDocServer{}.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	var body struct {
+		Departments []struct {
+			Transactions []struct {
+				Output utilities.Schema `json:"output"`
+			} `json:"transactions"`
+		} `json:"departments"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	output := body.Departments[0].Transactions[0].Output
+	if output.Type != "object" || output.Properties["name"].Type != "string" {
+		t.Fatalf("unexpected response schema: %#v", output)
+	}
+}
+
+func TestApiDocServer_AnalysisError(t *testing.T) {
+	department.DispatcherHolder = nil
+	department.DispatcherHolder.Add("Schema", transaction.TransactionBucketItem{
+		Name: "broken",
+		Transaction: mockServer{
+			request:  struct{}{},
+			response: failingResponseMarshaler{},
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/help?format=json", nil)
+	rr := httptest.NewRecorder()
+	ApiDocServer{}.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusInternalServerError)
+	}
+}
 
 func TestRateLimiter(t *testing.T) {
 	doc := model.Document{
