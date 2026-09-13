@@ -68,7 +68,7 @@
         .accordion-icon::after { content: '\002B'; font-weight: bold; }
         .active .accordion-icon::after { content: "\2212"; }
         .panel { padding: 0 20px; background-color: var(--panel-bg); display: none; overflow: hidden; border-top: 1px solid var(--trans-border); }
-        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
+        .details-grid { display: grid; grid-template-columns: 1fr; gap: 20px; padding: 20px 0; }
         pre { background: var(--pre-bg); padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-color); }
         .detail-title { font-weight: bold; margin-bottom: 10px; color: var(--detail-title); text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
         .no-results { display: none; text-align: center; padding: 40px; font-size: 1.2em; color: var(--detail-title); }
@@ -103,41 +103,54 @@
                     <span class="transaction-name">{{.Name}}</span>
                     <span class="accordion-icon"></span>
                 </button>
+                {{if .Request}}
                 <div class="panel">
                     <div style="padding: 15px 0 5px 0; border-bottom: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-size: 0.85em; font-weight: bold; color: var(--detail-title); text-transform: uppercase;">Tüm Transaction Yapısı</span>
+                        <span style="font-size: 0.85em; font-weight: bold; color: var(--detail-title); text-transform: uppercase;">Dokümantasyon Kaydı</span>
                         <div class="copy-group" style="margin-bottom: 0;">
-                            <button class="copy-btn" onclick="copyToClipboard(this, 'json')">Tümünü JSON Kopyala</button>
-                            <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">Tümünü YAML Kopyala</button>
+                            <button class="copy-btn" onclick="copyToClipboard(this, 'json')">Kaydı JSON Kopyala</button>
+                            <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">Kaydı YAML Kopyala</button>
                             <span class="copy-success">Kopyalandı!</span>
                         </div>
                         <div class="data-container" data-json="{{. | json}}" data-yaml="{{. | yaml}}" style="display: none;"></div>
                     </div>
                     <div class="details-grid">
                         <div>
-                            <div class="detail-title">Giriş Yapısı (Request)</div>
+                            <div class="detail-title">Gönderilebilir İstek</div>
                             <div class="copy-group">
-                                <button class="copy-btn" onclick="copyToClipboard(this, 'json')">JSON Kopyala</button>
-                                <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">YAML Kopyala</button>
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'json')">İsteği JSON Kopyala</button>
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">İsteği YAML Kopyala</button>
                                 <span class="copy-success">Kopyalandı!</span>
                             </div>
-                            <div class="data-container" data-json="{{.Procedure | json}}" data-yaml="{{.Procedure | yaml}}">
-                                <pre>{{.Procedure | json}}</pre>
+                            <div class="data-container" data-json="{{.Request.Example | json}}" data-yaml="{{.Request.Example | yaml}}">
+                                <pre>{{.Request.Example | json}}</pre>
                             </div>
                         </div>
                         <div>
-                            <div class="detail-title">Çıkış Yapısı (Response)</div>
+                            <div class="detail-title">Request Şeması</div>
                             <div class="copy-group">
                                 <button class="copy-btn" onclick="copyToClipboard(this, 'json')">JSON Kopyala</button>
                                 <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">YAML Kopyala</button>
                                 <span class="copy-success">Kopyalandı!</span>
                             </div>
-                            <div class="data-container" data-json="{{.Output | json}}" data-yaml="{{.Output | yaml}}">
-                                <pre>{{.Output | json}}</pre>
+                            <div class="data-container" data-json="{{.Request.Schema | json}}" data-yaml="{{.Request.Schema | yaml}}">
+                                <pre>{{.Request.Schema | json}}</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="detail-title">Response Şeması</div>
+                            <div class="copy-group">
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'json')">JSON Kopyala</button>
+                                <button class="copy-btn" onclick="copyToClipboard(this, 'yaml')">YAML Kopyala</button>
+                                <span class="copy-success">Kopyalandı!</span>
+                            </div>
+                            <div class="data-container" data-json="{{.Response.Schema | json}}" data-yaml="{{.Response.Schema | yaml}}">
+                                <pre>{{.Response.Schema | json}}</pre>
                             </div>
                         </div>
                     </div>
                 </div>
+                {{end}}
             </div>
             {{end}}
         </div>

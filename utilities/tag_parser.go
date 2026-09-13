@@ -1,6 +1,9 @@
 package utilities
 
 import (
+	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/godispatcher/dispatcher/constants"
@@ -13,38 +16,35 @@ type TransactionExchangeTag struct {
 }
 
 func ParseTagToTransactionExchangeTag(tag string) (result TransactionExchangeTag, err error) {
-	options := strings.Split(tag, " ")
-	for _, val := range options {
-		optionDetail := strings.Split(val, ":")
-		switch optionDetail[0] {
-		case constants.OPTION_REQUIRE:
-			{
-				optionDetail[1] = strings.Trim(optionDetail[1], "\"")
-				switch optionDetail[1] {
-				case "true", "True", "TRUE":
-					result.Require = &[]bool{true}[0]
-				case "false", "False", "FALSE":
-					result.Require = &[]bool{false}[0]
-				}
-			}
-		case constants.OPTION_ISEMPTY:
-			{
-				optionDetail[1] = strings.Trim(optionDetail[1], "\"")
-				switch optionDetail[1] {
-				case "true", "True", "TRUE":
-					result.IsEmpty = &[]bool{true}[0]
-				case "false", "False", "FALSE":
-					result.IsEmpty = &[]bool{false}[0]
-				}
-			}
-		case constants.OPTION_JSON:
-			{
-				optionDetail[1] = strings.Trim(optionDetail[1], "\"")
-				optionDetailArgument := strings.Split(optionDetail[1], ",")
-				result.FieldRawname = optionDetailArgument[0]
-			}
+	structTag := reflect.StructTag(tag)
+	if value, ok := structTag.Lookup(constants.OPTION_REQUIRE); ok {
+		result.Require, err = parseBoolTag(constants.OPTION_REQUIRE, value)
+		if err != nil {
+			return result, err
 		}
 	}
+	if value, ok := structTag.Lookup(constants.OPTION_IS_EMPTY); ok {
+		result.IsEmpty, err = parseBoolTag(constants.OPTION_IS_EMPTY, value)
+		if err != nil {
+			return result, err
+		}
+	} else if value, ok := structTag.Lookup(constants.OPTION_ISEMPTY_LEGACY); ok {
+		result.IsEmpty, err = parseBoolTag(constants.OPTION_ISEMPTY_LEGACY, value)
+		if err != nil {
+			return result, err
+		}
+	}
+	if value, ok := structTag.Lookup(constants.OPTION_JSON); ok {
+		result.FieldRawname = strings.Split(value, ",")[0]
+	}
 
-	return
+	return result, nil
+}
+
+func parseBoolTag(name, value string) (*bool, error) {
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s struct tag value %q: %w", name, value, err)
+	}
+	return &parsed, nil
 }
