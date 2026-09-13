@@ -9,10 +9,47 @@ import (
 	"testing"
 
 	"github.com/godispatcher/dispatcher/department"
+	"github.com/godispatcher/dispatcher/middleware"
 	"github.com/godispatcher/dispatcher/model"
 	"github.com/godispatcher/dispatcher/transaction"
 	"github.com/godispatcher/dispatcher/utilities"
 )
+
+var validationTransactionCalled bool
+
+type validationServerRequest struct {
+	Age int `json:"age" require:"true"`
+}
+
+type validationServerResponse struct{}
+
+type validationServerTransaction struct {
+	middleware.Middleware[validationServerRequest, validationServerResponse]
+}
+
+func (*validationServerTransaction) SetSelfRunables() error  { return nil }
+func (*validationServerTransaction) SetupTransaction() error { return nil }
+func (*validationServerTransaction) Transact() error {
+	validationTransactionCalled = true
+	return nil
+}
+
+func TestServerInitRejectsRequestTypeMismatchBeforeTransact(t *testing.T) {
+	validationTransactionCalled = false
+	service := Server[validationServerTransaction, *validationServerTransaction]{}
+	result := service.Init(model.Document{
+		Department:  "Validation",
+		Transaction: "typeMismatch",
+		Form:        map[string]any{"age": "not-a-number"},
+	})
+
+	if result.Type != "Error" {
+		t.Fatalf("result type = %q, want Error", result.Type)
+	}
+	if validationTransactionCalled {
+		t.Fatal("Transact() was called for an invalid request")
+	}
+}
 
 func TestApiDocServer_JSON(t *testing.T) {
 	req, err := http.NewRequest("GET", "/help?format=json", nil)
@@ -180,7 +217,9 @@ func TestApiDocServer_ResponseSchema(t *testing.T) {
 	department.DispatcherHolder.Add("Schema", transaction.TransactionBucketItem{
 		Name: "show",
 		Transaction: mockServer{
-			request: struct{}{},
+			request: struct {
+				Query string `json:"query" require:"true" is_empty:"false" example:"laptop"`
+			}{},
 			response: struct {
 				Name string `json:"name"`
 			}{},
@@ -197,16 +236,75 @@ func TestApiDocServer_ResponseSchema(t *testing.T) {
 	var body struct {
 		Departments []struct {
 			Transactions []struct {
-				Output utilities.Schema `json:"output"`
+				Request struct {
+					Schema  utilities.Schema `json:"schema"`
+					Example model.Document   `json:"example"`
+				} `json:"request"`
+				Response struct {
+					Schema utilities.Schema `json:"schema"`
+				} `json:"response"`
 			} `json:"transactions"`
 		} `json:"departments"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	output := body.Departments[0].Transactions[0].Output
+	transactionDoc := body.Departments[0].Transactions[0]
+	output := transactionDoc.Response.Schema
 	if output.Type != "object" || output.Properties["name"].Type != "string" {
 		t.Fatalf("unexpected response schema: %#v", output)
+	}
+	if request := transactionDoc.Request; request.Schema.Required[0] != "query" || request.Example.Department != "Schema" || request.Example.Transaction != "show" {
+		t.Fatalf("unexpected request documentation: %#v", request)
+	}
+	form := transactionDoc.Request.Example.Form
+	if form["query"] != "laptop" {
+		t.Fatalf("unexpected request example form: %#v", transactionDoc.Request.Example.Form)
+	}
+}
+
+func TestApiDocServer_HTMLSeparatesExampleAndSchemas(t *testing.T) {
+	department.DispatcherHolder = nil
+	department.DispatcherHolder.Add("Docs", transaction.TransactionBucketItem{
+		Name: "search",
+		Transaction: mockServer{
+			request: struct {
+				Query string `json:"query" require:"true" example:"laptop"`
+			}{},
+			response: struct{}{},
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/help", nil)
+	rr := httptest.NewRecorder()
+	ApiDocServer{}.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	for _, label := range []string{"Gönderilebilir İstek", "Request Şeması", "Response Şeması", "İsteği JSON Kopyala"} {
+		if !strings.Contains(rr.Body.String(), label) {
+			t.Errorf("HTML output is missing %q", label)
+		}
+	}
+}
+
+func TestApiDocServer_ShortHTMLDoesNotRenderSchemaPanels(t *testing.T) {
+	department.DispatcherHolder = nil
+	department.DispatcherHolder.Add("Docs", transaction.TransactionBucketItem{
+		Name:        "search",
+		Transaction: mockServer{request: struct{}{}, response: struct{}{}},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/help?short=1", nil)
+	rr := httptest.NewRecorder()
+	ApiDocServer{}.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", rr.Code, http.StatusOK, rr.Body.String())
+	}
+	if strings.Contains(rr.Body.String(), "Gönderilebilir İstek") {
+		t.Fatal("short documentation unexpectedly contains schema panels")
 	}
 }
 

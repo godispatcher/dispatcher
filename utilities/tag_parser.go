@@ -23,8 +23,13 @@ func ParseTagToTransactionExchangeTag(tag string) (result TransactionExchangeTag
 			return result, err
 		}
 	}
-	if value, ok := structTag.Lookup(constants.OPTION_ISEMPTY); ok {
-		result.IsEmpty, err = parseBoolTag(constants.OPTION_ISEMPTY, value)
+	if value, ok := structTag.Lookup(constants.OPTION_IS_EMPTY); ok {
+		result.IsEmpty, err = parseBoolTag(constants.OPTION_IS_EMPTY, value)
+		if err != nil {
+			return result, err
+		}
+	} else if value, ok := structTag.Lookup(constants.OPTION_ISEMPTY_LEGACY); ok {
+		result.IsEmpty, err = parseBoolTag(constants.OPTION_ISEMPTY_LEGACY, value)
 		if err != nil {
 			return result, err
 		}

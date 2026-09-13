@@ -3,7 +3,7 @@ package utilities
 import "testing"
 
 func TestParseTagToTransactionExchangeTag(t *testing.T) {
-	tag, err := ParseTagToTransactionExchangeTag(`json:"display_name,omitempty" require:"TRUE" isEmpty:"false"`)
+	tag, err := ParseTagToTransactionExchangeTag(`json:"display_name,omitempty" require:"TRUE" is_empty:"false"`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -12,6 +12,16 @@ func TestParseTagToTransactionExchangeTag(t *testing.T) {
 	}
 	if tag.Require == nil || !*tag.Require {
 		t.Errorf("require = %#v, want true", tag.Require)
+	}
+	if tag.IsEmpty == nil || *tag.IsEmpty {
+		t.Errorf("isEmpty = %#v, want false", tag.IsEmpty)
+	}
+}
+
+func TestParseTagToTransactionExchangeTagSupportsLegacyIsEmpty(t *testing.T) {
+	tag, err := ParseTagToTransactionExchangeTag(`isEmpty:"false"`)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if tag.IsEmpty == nil || *tag.IsEmpty {
 		t.Errorf("isEmpty = %#v, want false", tag.IsEmpty)

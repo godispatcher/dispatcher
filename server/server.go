@@ -136,6 +136,11 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
 		return outputErrDoc
 	}
+	err = ta.SetRequest(jsonByteData)
+	if err != nil {
+		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
+		return outputErrDoc
+	}
 	if ta.GetRunables() != nil {
 		for _, runF := range ta.GetRunables() {
 			err := runF(document)
@@ -145,7 +150,6 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 			}
 		}
 	}
-	ta.SetRequest(jsonByteData)
 	err = ta.Transact()
 	if err != nil {
 		outputErrDoc := model.Document{Department: document.Department, Transaction: document.Transaction, Error: err.Error(), Type: "Error"}
@@ -158,17 +162,24 @@ func (s Server[T, TI]) Init(document model.Document) model.Document {
 }
 
 type TransactionListHelper struct {
-	Name      string      `json:"name"`
-	Procedure interface{} `json:"procedure,omitempty"`
-	Output    interface{} `json:"output,omitempty"`
+	Name     string                 `json:"name" yaml:"name"`
+	Request  *RequestDocumentation  `json:"request,omitempty" yaml:"request,omitempty"`
+	Response *ResponseDocumentation `json:"response,omitempty" yaml:"response,omitempty"`
+}
+type RequestDocumentation struct {
+	Schema  utilities.Schema `json:"schema" yaml:"schema"`
+	Example model.Document   `json:"example" yaml:"example"`
+}
+type ResponseDocumentation struct {
+	Schema utilities.Schema `json:"schema" yaml:"schema"`
 }
 type DepartmentListHelper struct {
-	Name         string                  `json:"name"`
-	Transactions []TransactionListHelper `json:"transactions"`
+	Name         string                  `json:"name" yaml:"name"`
+	Transactions []TransactionListHelper `json:"transactions" yaml:"transactions"`
 }
 
 type HelperList struct {
-	Departments []DepartmentListHelper `json:"departments"`
+	Departments []DepartmentListHelper `json:"departments" yaml:"departments"`
 }
 
 type ApiDocServer struct {
@@ -184,18 +195,36 @@ func (ApiDocServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			transaction := TransactionListHelper{}
 			transaction.Name = (*v).GetName()
 			if !r.URL.Query().Has("short") || r.URL.Query().Get("short") == "0" {
-				procedure, err := utilities.AnalyzeJSONSchema(reflect.TypeOf((*v).GetTransaction().GetRequest()))
+				requestType := reflect.TypeOf((*v).GetTransaction().GetRequest())
+				requestSchema, err := utilities.AnalyzeJSONSchema(requestType)
 				if err != nil {
 					http.Error(w, "Request schema analysis failed: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
-				output, err := utilities.AnalyzeJSONSchema(reflect.TypeOf((*v).GetTransaction().GetResponse()))
+				requestExample, err := utilities.GenerateJSONExample(requestType)
+				if err != nil {
+					http.Error(w, "Request example generation failed: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				form := model.DocumentForm{}
+				if err := form.FromInterface(requestExample); err != nil {
+					http.Error(w, "Request example conversion failed: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				responseSchema, err := utilities.AnalyzeJSONSchema(reflect.TypeOf((*v).GetTransaction().GetResponse()))
 				if err != nil {
 					http.Error(w, "Response schema analysis failed: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
-				transaction.Procedure = procedure
-				transaction.Output = output
+				transaction.Request = &RequestDocumentation{
+					Schema: requestSchema,
+					Example: model.Document{
+						Department:  val.Name,
+						Transaction: transaction.Name,
+						Form:        form,
+					},
+				}
+				transaction.Response = &ResponseDocumentation{Schema: responseSchema}
 			}
 			department.Transactions = append(department.Transactions, transaction)
 		}

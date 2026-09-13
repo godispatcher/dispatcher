@@ -11,7 +11,7 @@
 - **Department Architecture**: Servisleri mantıksal departmanlara ayırma
 - **Built-in Logging**: Otomatik request/response loglama
 - **API Documentation**: Otomatik API dokümantasyonu (/help endpoint - HTML, JSON ve Toon formatları)
-- **Validation System**: Struct tag'leri ile otomatik request validasyonu (`require`, `is_empty`)
+- **Validation System**: Struct tag'leri ile recursive ve tip güvenli request validasyonu (`require`, `is_empty`)
 - **CORS Support**: Kolay yapılandırılabilir CORS desteği
 - **Security**: Built-in licence validation ve güvenlik özellikleri
 - **Request Chaining**: Zincirleme request desteği
@@ -252,6 +252,43 @@ Framework otomatik olarak API dokümantasyonu sağlar:
 - **Toon Documentation (Plain Text)**: `GET /help?format=toon`
 - **Short Documentation**: `GET /help?short=1`
 
+Her transaction için dokümantasyon, teknik sözleşme ile doğrudan gönderilebilir örneği ayrı alanlarda sunar:
+
+```json
+{
+    "name": "search",
+    "request": {
+        "schema": {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "x-allow-empty": false
+                }
+            }
+        },
+        "example": {
+            "department": "Product",
+            "transaction": "search",
+            "form": {
+                "query": "laptop"
+            }
+        }
+    },
+    "response": {
+        "schema": {
+            "type": "object"
+        }
+    }
+}
+```
+
+- `request.example`, API'ye gönderilebilen `department` / `transaction` / `form` zarfıdır.
+- `request.schema` ve `response.schema`, `type`, `properties`, `required` ve validation kısıtlarını açıklayan bilgi alanlarıdır; request payload'ına eklenmez.
+- Örnek değerler için struct alanlarında `example` tag'i kullanılabilir: `Query string \`json:"query" example:"laptop"\``. Tag verilmezse alana uygun temsili bir değer üretilir.
+
 ### Validation / Otomatik Doğrulama
 
 Framework, struct tag'lerini kullanarak otomatik form doğrulaması sağlar:
@@ -264,8 +301,13 @@ type UserRequest struct {
 }
 ```
 
-- `require:"true"`: Alanın istekte bulunması zorunludur.
-- `is_empty:"false"`: Alanın boş olmaması (string için "" değil, int için nil değil) zorunludur.
+- `require:"true"`: JSON alanının istekte bulunmasını zorunlu kılar.
+- `is_empty:"false"`: Alan gönderildiyse `null`, zero-value, boş koleksiyon/nesne veya boş/yalnız boşluk içeren string olmasını engeller. Optional alanlarda da çalışır.
+- İç içe struct, pointer, slice, array ve map değerleri recursive doğrulanır; hatalar `items[0].sku` gibi tam alan yolunu içerir.
+- JSON değerleri request struct'ının Go tipleriyle uyuşmuyorsa middleware ve transaction çalıştırılmaz.
+- `json` tag'i bulunmayan alanlarda Go alan adı kullanılır; `json:"-"` alanları doğrulama dışında kalır.
+
+Önceki sürümlerde kullanılan `isEmpty` yazımı geriye uyumluluk için desteklenir; yeni kodda `is_empty` kullanılmalıdır. `require` ve `is_empty` değerleri geçerli boolean (`true` veya `false`) değilse request bir yapılandırma hatasıyla reddedilir.
 
 ## 🔒 Güvenlik / Security
 

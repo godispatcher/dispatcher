@@ -22,6 +22,14 @@ type analysisDocument struct {
 	hidden   string
 }
 
+type documentedRequest struct {
+	Query   string            `json:"query" require:"true" is_empty:"false" example:"laptop"`
+	Page    int               `json:"page" example:"2"`
+	Enabled bool              `json:"enabled" is_empty:"false"`
+	Tags    []string          `json:"tags" is_empty:"false"`
+	Labels  map[string]string `json:"labels" is_empty:"false"`
+}
+
 type recursiveAnalysisNode struct {
 	Children []*recursiveAnalysisNode             `json:"children"`
 	Index    map[string]*recursiveAnalysisNode    `json:"index"`
@@ -79,6 +87,70 @@ func TestAnalyzeJSONSchemaStruct(t *testing.T) {
 	assertSchemaType(t, schema.Properties["anything"], "any")
 	if !schema.Properties["optional"].Nullable {
 		t.Error("pointer property should be nullable")
+	}
+}
+
+func TestAnalyzeJSONSchemaIncludesValidationRules(t *testing.T) {
+	schema, err := AnalyzeJSONSchema(reflect.TypeOf(documentedRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(schema.Required) != 1 || schema.Required[0] != "query" {
+		t.Fatalf("required = %#v, want [query]", schema.Required)
+	}
+	if query := schema.Properties["query"]; query.MinLength == nil || *query.MinLength != 1 || query.AllowEmpty == nil || *query.AllowEmpty {
+		t.Fatalf("query constraints = %#v", query)
+	}
+	if tags := schema.Properties["tags"]; tags.MinItems == nil || *tags.MinItems != 1 {
+		t.Fatalf("tags constraints = %#v", tags)
+	}
+	if labels := schema.Properties["labels"]; labels.MinProperties == nil || *labels.MinProperties != 1 {
+		t.Fatalf("labels constraints = %#v", labels)
+	}
+	if enabled := schema.Properties["enabled"]; enabled.AllowEmpty == nil || *enabled.AllowEmpty {
+		t.Fatalf("enabled constraints = %#v", enabled)
+	}
+}
+
+func TestGenerateJSONExampleUsesTagsAndValidTypeDefaults(t *testing.T) {
+	example, err := GenerateJSONExample(reflect.TypeOf(documentedRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	object, ok := example.(map[string]interface{})
+	if !ok {
+		t.Fatalf("example type = %T, want map", example)
+	}
+	if object["query"] != "laptop" || object["page"] != float64(2) {
+		t.Fatalf("tagged examples = %#v", object)
+	}
+	if object["enabled"] != true {
+		t.Fatalf("enabled = %#v, want true", object["enabled"])
+	}
+	if tags, ok := object["tags"].([]interface{}); !ok || len(tags) != 1 || tags[0] != "string" {
+		t.Fatalf("tags = %#v, want one example item", object["tags"])
+	}
+}
+
+func TestGenerateJSONExampleRejectsInvalidExampleTag(t *testing.T) {
+	type request struct {
+		Page int `json:"page" example:"not-a-number"`
+	}
+
+	if _, err := GenerateJSONExample(reflect.TypeOf(request{})); err == nil {
+		t.Fatal("expected invalid example tag error")
+	}
+}
+
+func TestGenerateJSONExampleHandlesRecursiveTypes(t *testing.T) {
+	example, err := GenerateJSONExample(reflect.TypeOf(recursiveAnalysisNode{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if example == nil {
+		t.Fatal("expected recursive object example")
 	}
 }
 
